@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.drony</groupId>
+    <artifactId>drony</artifactId>
+    <version>4_2</version>
+
+    <name>DRONY</name>
+
+    <repositories>
+        <repository>
+            <id>dc_public</id>
+            <name>Dukascopy public repository</name>
+            <url>https://www.dukascopy.com/client/jforexlib/publicrepo/</url>
+        </repository>
+    </repositories>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <version.jforex.api>2.13.98
+        </version.jforex.api> <!-- find the latest available version here:http://www.dukascopy.com/client/jforexlib/publicrepo/com/dukascopy/api/JForex-API/ -->
+        <version.dds2.jclient.jforex>3.6.37
+        </version.dds2.jclient.jforex> <!-- find the latest available version here: http://www.dukascopy.com/client/jforexlib/publicrepo/com/dukascopy/dds2/DDS2-jClient-JForex/    -->
+        <version.fastexcel>0.15.1</version.fastexcel> <!-- https://mvnrepository.com/artifact/org.dhatim/fastexcel -->
+        <version.fastexcel-reader>0.15.1
+        </version.fastexcel-reader> <!-- https://mvnrepository.com/artifact/org.dhatim/fastexcel-reader -->
+    </properties>
+
+	<!-- mvn archetype:generate -DgroupId=com.drony -DartifactId=drony -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.4 -DinteractiveMode=false -->
+
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dukascopy.dds2</groupId>
+            <artifactId>DDS2-jClient-JForex</artifactId>
+            <version>${version.dds2.jclient.jforex}</version>
+            <!--<scope>provided</scope>-->
+        </dependency>
+        <dependency>
+            <groupId>com.dukascopy.api</groupId>
+            <artifactId>JForex-API</artifactId>
+            <version>${version.jforex.api}</version>
+            <classifier>sources</classifier>
+            <!--<scope>provided</scope>-->
+        </dependency>
+
+        <dependency>
+            <groupId>org.dhatim</groupId>
+            <artifactId>fastexcel</artifactId>
+            <version>${version.fastexcel}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.dhatim</groupId>
+            <artifactId>fastexcel-reader</artifactId>
+            <version>${version.fastexcel-reader}</version>
+        </dependency>
+
+    </dependencies>
+
+
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+
+                    <archive>
+                        <manifest>
+                            <mainClass>com.drony.App</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
