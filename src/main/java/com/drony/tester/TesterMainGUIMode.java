@@ -68,7 +68,7 @@ public class TesterMainGUIMode {
             DronyV042 strategyWithJar = new DronyV042();
             strategyWithJar.fileParam = CONFIG.paramFile();
             strategyWithJar.fileResult = CONFIG.resultDir();
-            strategyWithJar.outPutVerboso = CONFIG.verbose();
+            strategyWithJar.outputVerbose = CONFIG.verbose();
             try {
                 testerClientRunner.start(
                         jnlpUrl,
@@ -137,7 +137,7 @@ public class TesterMainGUIMode {
         }
 
         File reportFile = new File(fileName + dotHtml);
-        System.out.println("Report in  " + reportFile.getAbsolutePath());
+        LOGGER.info("Report in {}", reportFile.getAbsolutePath());
 
         try {
             testerClientRunner.client.createReport(processId, reportFile);

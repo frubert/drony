@@ -2,7 +2,7 @@ package com.drony;
 
 import java.io.File;
 
-import com.drony.stategy.DelegateDrony;
+import com.drony.strategy.DelegateDrony;
 import com.dukascopy.api.*;
 
 
@@ -16,7 +16,7 @@ public class DronyV042 implements IStrategy {
     public File fileResult;
 
     @Configurable(value = "Log Verboso")
-    public Boolean outPutVerboso;
+    public Boolean outputVerbose;
 
 
     private IConsole console;
@@ -31,7 +31,7 @@ public class DronyV042 implements IStrategy {
         console.getOut().println("Version: " + DelegateDrony.version);
         console.getOut().println("Read EXCEL params");
 
-        delegate = new DelegateDrony(fileParam, fileResult, context, outPutVerboso);
+        delegate = new DelegateDrony(fileParam, fileResult, context, outputVerbose);
 
         console.getOut().println("Read EXCEL params");
 

@@ -109,9 +109,7 @@ class RoboClientRunner {
         Date dateFromObject = dateFormat.parse(dateFrom);
         Date dateToObject = dateFormat.parse(dateTo);
 
-        System.out.println("Date start : " + dateFromObject.toString() + " date end: " + dateToObject.toString());
-
         client.setDataInterval(ITesterClient.DataLoadingMethod.ALL_TICKS, dateFromObject.getTime(), dateToObject.getTime());
-        LOGGER.info("from: " + dateFrom + " to: " + dateTo);
+        LOGGER.info("Backtest interval from {} to {}", dateFrom, dateTo);
     }
 }
