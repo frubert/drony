@@ -115,7 +115,7 @@ public class DronyStrategy implements StrategyInterface {
         dronyOrder.setMotivationToClose(" BY TAKE PROFIT");
       }
     } else if (message.getType() == IMessage.Type.ORDER_FILL_OK) {
-      this.delegateDrony.closeOtherOrder(
+      this.delegateDrony.getClusterManager().onOrderFilled(
           this.paramDrony.getOrderCluster(),
           order.getLabel(),
           this.paramDrony.getOrderClusterPriority(),
@@ -240,63 +240,84 @@ public class DronyStrategy implements StrategyInterface {
     console.getOut().println("END BAR ------------------------ " + dateStr);
   }
 
+  /**
+   * Valuta il setup su una sequenza di barre: prima i test per-barra su tutta
+   * la sequenza, poi i test di contesto sulla barra corrente; se tutto passa
+   * delega la creazione dell'ordine.
+   */
   private boolean roboStrategyBar(Instrument instrument, Period period, List<IBar> historyBars,
       DirectionEnum direction) throws JFException {
 
-    IBar bar = historyBars.get(historyBars.size() - 1);
-    IBar slopeBar = historyBars.get(0);
-
     List<BarTestResultLog> logs = new ArrayList<>();
+
+    if (!validateEachBar(historyBars, instrument, direction, logs)) {
+      return failAndLog(logs, instrument);
+    }
+
+    if (!validateCurrentBar(historyBars, instrument, period, direction, logs)) {
+      return failAndLog(logs, instrument);
+    }
+
+    IBar bar = historyBars.get(historyBars.size() - 1);
+    IBar prevBar = historyBars.get(historyBars.size() - (Math.min(historyBars.size(), paramDrony.getN())));
+    return this.dronyOrderService.createOrder(bar, prevBar, direction, instrument, logs);
+  }
+
+  /** Test eseguiti su ogni barra della sequenza: direzione, corpo assoluto, corpo percentuale. */
+  private boolean validateEachBar(List<IBar> historyBars, Instrument instrument,
+      DirectionEnum direction, List<BarTestResultLog> logs) {
 
     for (IBar barCurrent : historyBars) {
 
       BarTestInit init = new BarTestInit(barCurrent, this.paramDrony, instrument, direction);
 
-      List<AbstractBarTest> testForAllBar = new ArrayList<>();
-      testForAllBar.add(new BarDirection(init));
-      testForAllBar.add(new BarBodyAbs(init));
-      testForAllBar.add(new BarBodyPercent(init));
-
-      Pair<Boolean, List<BarTestResult>> result = runTest(testForAllBar);
+      Pair<Boolean, List<BarTestResult>> result = runTests(List.of(
+          new BarDirection(init),
+          new BarBodyAbs(init),
+          new BarBodyPercent(init)));
 
       logs.add(new BarTestResultLog(barCurrent, result));
 
       if (!result.getFirst()) {
-        if (this.outputVerbose) {
-          this.dronyLogBars.add(new DronyLogBar(logs, instrument, this.outputVerbose));
-        }
         return false;
       }
     }
+    return true;
+  }
 
-    BarTestInit init = new BarTestInit(bar, paramDrony, instrument, direction, this.history, period, slopeBar);
+  /** Test di contesto eseguiti solo sull'ultima barra: shadow, storia colori, pendenza, volatilità. */
+  private boolean validateCurrentBar(List<IBar> historyBars, Instrument instrument, Period period,
+      DirectionEnum direction, List<BarTestResultLog> logs) throws JFException {
 
-    List<AbstractBarTest> testForAllBar = new ArrayList<>();
-    testForAllBar.add(new BarSame(init));
-    testForAllBar.add(new BarColorStory(init));
-    testForAllBar.add(new BarSlope(init));
-    testForAllBar.add(new BarMod(init));
+    IBar bar = historyBars.get(historyBars.size() - 1);
+    IBar slopeBar = historyBars.get(0);
 
-    Pair<Boolean, List<BarTestResult>> result = runTest(testForAllBar);
+    BarTestInit init =
+        new BarTestInit(bar, paramDrony, instrument, direction, this.history, period, slopeBar);
+
+    Pair<Boolean, List<BarTestResult>> result = runTests(List.of(
+        new BarSame(init),
+        new BarColorStory(init),
+        new BarSlope(init),
+        new BarMod(init)));
 
     logs.get(logs.size() - 1).update(result);
 
-    if (!result.getFirst()) {
-      if (this.outputVerbose) {
-        this.dronyLogBars.add(new DronyLogBar(logs, instrument, this.outputVerbose));
-      }
-      return false;
-    }
-
-    IBar prevBar = historyBars.get(historyBars.size() - (Math.min(historyBars.size(), paramDrony.getN())));
-    return this.dronyOrderService.createOrder(bar, prevBar, direction, instrument, logs);
+    return result.getFirst();
   }
 
-  private Pair<Boolean, List<BarTestResult>> runTest(List<AbstractBarTest> testForAllBar) {
+  private boolean failAndLog(List<BarTestResultLog> logs, Instrument instrument) {
+    if (this.outputVerbose) {
+      this.dronyLogBars.add(new DronyLogBar(logs, instrument, this.outputVerbose));
+    }
+    return false;
+  }
+
+  private Pair<Boolean, List<BarTestResult>> runTests(List<AbstractBarTest> tests) {
 
     List<BarTestResult> testResults = new ArrayList<>();
 
-    for (AbstractBarTest test : testForAllBar) {
+    for (AbstractBarTest test : tests) {
       BarTestResult result = test.testBar();
       testResults.add(result);
       if (!result.isResult()) {

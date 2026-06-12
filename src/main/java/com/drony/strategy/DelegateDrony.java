@@ -1,16 +1,14 @@
 package com.drony.strategy;
 
-import com.drony.strategy.data.ClusterOrderDetail;
 import com.drony.strategy.data.DronyData;
-import com.drony.strategy.data.DronyOrder;
 import com.drony.strategy.data.ParamDrony;
 import com.drony.strategy.edge.EdgeOrderService;
+import com.drony.strategy.service.ClusterManager;
 import com.drony.strategy.utility.ReaderParam;
 import com.drony.strategy.utility.WriterExcelOrder;
 import com.drony.utility.data.Pair;
 import com.drony.utility.data.U;
 import com.dukascopy.api.*;
-import java.util.stream.Collectors;
 import org.dhatim.fastexcel.Workbook;
 import org.dhatim.fastexcel.Worksheet;
 import org.slf4j.Logger;
@@ -35,10 +33,7 @@ public class DelegateDrony {
   private final List<DronyStrategy> dronies = new ArrayList<>();
   private File fileResult;
 
-  /* I callback JForex di una strategia girano su un singolo thread: bastano collezioni non sincronizzate. */
-  private final Map<String, Integer> clusterMaxOrder = new HashMap<>();
-  private final Map<String, List<ClusterOrderDetail>> clusterOrder = new HashMap<>();
-
+  private final ClusterManager clusterManager;
   private final EdgeOrderService edgeOrderService;
 
   public DelegateDrony(File fileExcel, File fileResult, IContext context, Boolean outputVerbose) {
@@ -48,6 +43,7 @@ public class DelegateDrony {
     this.engine = context.getEngine();
 
     this.edgeOrderService = new EdgeOrderService(this.engine);
+    this.clusterManager = new ClusterManager(this.engine, this.console);
 
     try {
       ReaderParam reader = new ReaderParam(fileExcel, console);
@@ -60,9 +56,7 @@ public class DelegateDrony {
         DronyStrategy drony = new DronyStrategy(param, outputVerbose, this, index++);
         dronies.add(drony);
         console.getOut().println(param.toString());
-        String clusterName = cleanNameCluster(param.getOrderCluster());
-        Integer max = this.clusterMaxOrder.getOrDefault(clusterName, 0);
-        this.clusterMaxOrder.put(clusterName, Math.max(max, param.getMaxOrderByCluster()));
+        this.clusterManager.registerCluster(param);
       }
 
       context.setSubscribedInstruments(instruments, true);
@@ -207,110 +201,8 @@ public class DelegateDrony {
     }
   }
 
-  private String cleanNameCluster(String clusterName) {
-    return U.trimRemoveNull(clusterName);
-  }
-
-  private List<ClusterOrderDetail> getListLabelsByCluster(String cluster) {
-    cluster = this.cleanNameCluster(cluster);
-    return this.clusterOrder.computeIfAbsent(cluster, k -> new ArrayList<>());
-  }
-
-  public boolean testAndAddOrderToCluster(String cluster, String label, int priority,
-      DronyOrder dronyOrder) {
-    cluster = this.cleanNameCluster(cluster);
-    List<ClusterOrderDetail> list = this.getListLabelsByCluster(cluster);
-
-    boolean orderFilled = list.stream().anyMatch(detail -> isFilled(detail.getLabel()));
-
-    if (orderFilled) {
-      return false;
-    } else {
-      list.add(new ClusterOrderDetail(label, priority, dronyOrder));
-      return true;
-    }
-  }
-
-  private boolean isFilled(String label) {
-    try {
-      IOrder order = this.engine.getOrder(label);
-      if (order != null) {
-        return order.getState().equals(IOrder.State.FILLED);
-      } else {
-        return false;
-      }
-    } catch (JFException e) {
-      this.console.getErr().println(e.getMessage());
-      this.console.getErr().println(e.toString());
-      return false;
-    }
-  }
-
-  private String getType(ClusterOrderDetail detail) {
-    try {
-      IOrder order = this.engine.getOrder(detail.getLabel());
-      if (order != null) {
-        if (order.getState() != IOrder.State.CANCELED
-            && order.getState() != IOrder.State.CLOSED
-            && order.getState() != IOrder.State.FILLED) {
-          return "NOT FILLED";
-        } else if (order.getState() == IOrder.State.FILLED) {
-          return "FILLED";
-        }
-      }
-    } catch (JFException e) {
-      this.console.getErr().println(e.getMessage());
-      this.console.getErr().println(e.toString());
-    }
-
-    return "EMPTY";
-  }
-
-  public void closeOtherOrder(String clusterStr, String label, int priority,
-      DronyOrder dronyOrder) {
-    String cluster = this.cleanNameCluster(clusterStr);
-    List<ClusterOrderDetail> list = getListLabelsByCluster(cluster);
-
-    Map<String, List<ClusterOrderDetail>> orderMap = list.stream()
-        .filter(detail -> !detail.getLabel().equals(label))
-        .collect(Collectors.groupingBy(this::getType));
-
-    orderMap.getOrDefault("NOT FILLED", new ArrayList<>())
-        .forEach(clusterOrderDetail -> {
-          try {
-            IOrder order = this.engine.getOrder(clusterOrderDetail.getLabel());
-            order.close();
-            clusterOrderDetail.getDronyOrder().setMotivationToClose(" BY CLUSTER RULE " + cluster);
-          } catch (JFException e) {
-            this.console.getErr().println(e.getMessage());
-            this.console.getErr().println(e.toString());
-          }
-        });
-
-    List<ClusterOrderDetail> orderFilled = orderMap.getOrDefault("FILLED", new ArrayList<>());
-
-    orderFilled.add(new ClusterOrderDetail(label, priority, dronyOrder));
-    int max = this.clusterMaxOrder.get(cluster);
-
-    if (orderFilled.size() <= max) {
-      return;
-    }
-
-    List<ClusterOrderDetail> orderOpen = orderFilled.stream()
-        .sorted((d1, d2) -> Integer.compare(d2.getPriority(), d1.getPriority()))
-        .collect(Collectors.toList());
-
-    for (int i = max; i < orderOpen.size(); i++) {
-      try {
-        ClusterOrderDetail detail = orderOpen.get(i);
-        IOrder order = this.engine.getOrder(detail.getLabel());
-        order.close();
-        dronyOrder.setMotivationToClose(" BY CLUSTER RULE PRIORITY " + cluster);
-      } catch (JFException e) {
-        this.console.getErr().println(e.getMessage());
-        this.console.getErr().println(e.toString());
-      }
-    }
+  public ClusterManager getClusterManager() {
+    return clusterManager;
   }
 
   public EdgeOrderService getEdgeOrderService() {

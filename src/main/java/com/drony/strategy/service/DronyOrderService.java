@@ -119,8 +119,9 @@ public class DronyOrderService {
           instrument,
           this.outputVerbose); // TODO ASK ARDUINO come primo prezzo di riferimento prendo il prezzo di chiusura delle barre +/- ident
 
-      if (delegateDrony.testAndAddOrderToCluster(this.paramDrony.getOrderCluster(), orderLabel,
-          this.paramDrony.getOrderClusterPriority(), dronyOrder)) {
+      if (delegateDrony.getClusterManager()
+          .testAndAddOrderToCluster(this.paramDrony.getOrderCluster(), orderLabel,
+              this.paramDrony.getOrderClusterPriority(), dronyOrder)) {
 
         order = this.engine
             .submitOrder(orderLabel, instrument, oreOrderCommand, this.paramDrony.getOrderSize(),
