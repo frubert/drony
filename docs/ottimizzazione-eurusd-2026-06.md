@@ -60,3 +60,29 @@ strada rispetto al TP 40 — finestra di esposizione allo stop dimezzata. Nel
 
 Storico completo C0001: Q4 2020 +34.1 · Q2 2021 +19.5 · 2025 +239.4 — sempre
 positivo, mai uno stop pieno nelle finestre a tick.
+
+## Walk-forward 2022-2024 (tick reali — aggiunta 12/06/2026, sera)
+
+| Anno | C0001 (TP20) | C0002 (TP20+%40) | C0003 (TP10) | C0004 (TP40) |
+|---|---|---|---|---|
+| Q4 2020 | +34.1 | +64.4 | +13.9 | +72.4 |
+| Q2 2021 | +19.5 | +37.7 | +15.1 | +37.7 |
+| **2022** | **−250.5** | **−385.1** | **−417.8** | **−613.0** |
+| **2023** | **−141.8** | **−242.9** | +103.6 | **−253.1** |
+| 2024 | +76.2 | +121.6 | +0.7 | +175.2 |
+| 2025 | +239.4 | +169.1 | +118.5 | +37.8 |
+| **Totale** | **≈ −23** | **≈ −235** | **≈ −166** | **≈ −543** |
+
+### Verdetto finale: NON consegnabile così com'è
+
+Nessuna variante sopravvive al walk-forward completo. Il 2022 (crollo EUR
+sotto la parità, trend a senso unico) è letale per la struttura stop-largo +
+break-even: drawdown 591-970 pips. Il 2023 conferma. I risultati positivi di
+2021/2024/2025 sono dipendenza dal regime (anni laterali o di trend mite),
+non robustezza.
+
+Lezione: la strategia in questa forma guadagna poco e spesso nei mercati
+laterali e perde molto nei trend forti. Possibili direzioni future (non
+testate): un filtro di regime/trend che spenga la strategia nei trend forti,
+varianti LONG/SHORT asimmetriche, o walk-forward optimization con ritaratura
+periodica. Qualunque sviluppo deve essere rivalidato sull'intero 2020-2025.
