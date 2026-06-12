@@ -176,8 +176,8 @@ public class BatchGenerator {
         for (String label : labels) {
             String norm = ReaderParam.normalize(label);
             if (!labelIndex.containsKey(norm)) {
-                throw new IllegalArgumentException(
-                        "Etichetta '" + label + "' non trovata nel template");
+                /* parametro assente nel template: aggiunto come riga nuova in coda */
+                newLabels.putIfAbsent(norm, label.trim());
             }
             normalized.add(norm);
         }
