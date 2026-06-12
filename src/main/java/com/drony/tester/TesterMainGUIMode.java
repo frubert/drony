@@ -69,6 +69,7 @@ public class TesterMainGUIMode {
             strategyWithJar.fileParam = CONFIG.paramFile();
             strategyWithJar.fileResult = CONFIG.resultDir();
             strategyWithJar.outputVerbose = CONFIG.verbose();
+            strategyWithJar.fileDecisions = CONFIG.decisionsFile();
             try {
                 testerClientRunner.start(
                         jnlpUrl,

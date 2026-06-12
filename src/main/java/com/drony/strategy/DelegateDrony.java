@@ -4,6 +4,7 @@ import com.drony.strategy.data.DronyData;
 import com.drony.strategy.data.ParamDrony;
 import com.drony.strategy.edge.EdgeOrderService;
 import com.drony.strategy.service.ClusterManager;
+import com.drony.strategy.utility.DecisionLogger;
 import com.drony.strategy.utility.ReaderParam;
 import com.drony.strategy.utility.WriterExcelOrder;
 import com.drony.utility.data.Pair;
@@ -35,8 +36,10 @@ public class DelegateDrony {
 
   private final ClusterManager clusterManager;
   private final EdgeOrderService edgeOrderService;
+  private final DecisionLogger decisionLogger;
 
-  public DelegateDrony(File fileExcel, File fileResult, IContext context, Boolean outputVerbose) {
+  public DelegateDrony(File fileExcel, File fileResult, File fileDecisions, IContext context,
+      Boolean outputVerbose) {
 
     this.console = context.getConsole();
     this.context = context;
@@ -44,6 +47,7 @@ public class DelegateDrony {
 
     this.edgeOrderService = new EdgeOrderService(this.engine);
     this.clusterManager = new ClusterManager(this.engine, this.console);
+    this.decisionLogger = DecisionLogger.toFile(fileDecisions);
 
     try {
       ReaderParam reader = new ReaderParam(fileExcel, console);
@@ -179,6 +183,8 @@ public class DelegateDrony {
         log.error("Errore scrittura report {}", fileResult, e);
       }
     }
+
+    this.decisionLogger.close();
   }
 
   public void onTick(Instrument instrument, ITick tick) throws JFException {
@@ -203,6 +209,10 @@ public class DelegateDrony {
 
   public ClusterManager getClusterManager() {
     return clusterManager;
+  }
+
+  public DecisionLogger getDecisionLogger() {
+    return decisionLogger;
   }
 
   public EdgeOrderService getEdgeOrderService() {

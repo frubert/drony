@@ -18,6 +18,9 @@ public class DronyV042 implements IStrategy {
     @Configurable(value = "Log Verboso")
     public Boolean outputVerbose;
 
+    @Configurable(value = "File giornale decisioni (CSV, vuoto = disattivato)")
+    public File fileDecisions;
+
 
     private IConsole console;
     private IContext context;
@@ -31,7 +34,7 @@ public class DronyV042 implements IStrategy {
         console.getOut().println("Version: " + DelegateDrony.version);
         console.getOut().println("Read EXCEL params");
 
-        delegate = new DelegateDrony(fileParam, fileResult, context, outputVerbose);
+        delegate = new DelegateDrony(fileParam, fileResult, fileDecisions, context, outputVerbose);
 
         console.getOut().println("Read EXCEL params");
 

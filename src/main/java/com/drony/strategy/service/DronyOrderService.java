@@ -5,6 +5,7 @@ import com.drony.strategy.data.BarTestResultLog;
 import com.drony.strategy.data.DirectionEnum;
 import com.drony.strategy.data.DronyOrder;
 import com.drony.strategy.data.ParamDrony;
+import com.drony.strategy.utility.DecisionLogger.Outcome;
 import com.drony.strategy.utility.TimeUtility;
 import com.drony.strategy.utility.Utility;
 import com.drony.utility.data.U;
@@ -144,6 +145,9 @@ public class DronyOrderService {
       } else {
         this.console.getOut().println(
             " CLuster " + this.paramDrony.getOrderCluster() + " is full, not order submit");
+        this.delegateDrony.getDecisionLogger().log(bar.getTime(), this.paramDrony.getName(),
+            direction.name(), Outcome.RIFIUTATO,
+            "cluster '" + this.paramDrony.getOrderCluster() + "' pieno o già fillato");
         return false;
       }
 
@@ -155,6 +159,10 @@ public class DronyOrderService {
         dronyOrder.getWriterExcel().writeOrder("CREATE ORDER " + direction + " ", order, bar);
 
         this.console.getOut().println(orderLabel);
+        this.delegateDrony.getDecisionLogger().log(bar.getTime(), this.paramDrony.getName(),
+            direction.name(), Outcome.ORDINE,
+            orderLabel + " " + (direction == DirectionEnum.BUY ? "BUYSTOP" : "SELLSTOP")
+                + " @" + price + " SL " + stopLoss + " TP " + takeProfit + " (mod=" + mod + ")");
         return true;
       }
 

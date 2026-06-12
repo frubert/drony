@@ -81,6 +81,12 @@ public class DronyConfig {
         return optional("strategy.reportFileName", "report/report");
     }
 
+    /** File CSV del giornale decisionale, o null se non configurato (log disattivato). */
+    public File decisionsFile() {
+        String path = optional("strategy.decisionsFile", "");
+        return path.isEmpty() ? null : new File(path);
+    }
+
     public boolean verbose() {
         return Boolean.parseBoolean(optional("strategy.verbose", "true"));
     }

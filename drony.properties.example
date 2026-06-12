@@ -16,6 +16,10 @@ strategy.resultDir=report/xlsx
 # Prefisso del report HTML del tester
 strategy.reportFileName=report/report
 strategy.verbose=true
+# Giornale decisionale: una riga CSV per ogni decisione dell'algoritmo
+# (segnale scartato e perché, ordine creato, blocchi orari, fill, chiusure).
+# Vuoto o assente = disattivato.
+strategy.decisionsFile=report/decisions.csv
 
 # --- Intervallo backtest (UTC, formato yyyy/MM/dd HH:mm:ss) ---
 backtest.from=2020/06/24 00:00:00

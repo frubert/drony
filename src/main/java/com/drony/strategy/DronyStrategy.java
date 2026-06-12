@@ -3,6 +3,8 @@ package com.drony.strategy;
 import com.drony.strategy.service.ActiveOrderRegistry;
 import com.drony.strategy.service.DronyOrderService;
 import com.drony.strategy.service.StopLossTakeProfitService;
+import com.drony.strategy.utility.DecisionLogger;
+import com.drony.strategy.utility.DecisionLogger.Outcome;
 import com.drony.strategy.test.*;
 import com.drony.strategy.test.data.BarTestResult;
 import com.drony.strategy.utility.BarUtility;
@@ -51,6 +53,7 @@ public class DronyStrategy implements StrategyInterface {
 
   private DronyOrderService dronyOrderService;
   private StopLossTakeProfitService stopLossTakeProfitService;
+  private DecisionLogger decisions = DecisionLogger.DISABLED;
 
   public DronyStrategy(ParamDrony paramDrony, Boolean outputVerbose, DelegateDrony delegateDrony,
       int index) {
@@ -86,6 +89,8 @@ public class DronyStrategy implements StrategyInterface {
 
     this.stopLossTakeProfitService = new StopLossTakeProfitService(context, this.paramDrony,
         this.orders, this.orderRegistry);
+
+    this.decisions = this.delegateDrony.getDecisionLogger();
   }
 
   @Override
@@ -114,7 +119,15 @@ public class DronyStrategy implements StrategyInterface {
       } else if (message.getReasons().contains(IMessage.Reason.ORDER_CLOSED_BY_TP)) {
         dronyOrder.setMotivationToClose(" BY TAKE PROFIT");
       }
+      this.decisions.log(message.getCreationTime(), paramDrony.getName(),
+          dronyOrder.getDirection().name(), Outcome.CHIUSURA,
+          order.getLabel() + " P&L " + order.getProfitLossInPips() + " pips, motivo:"
+              + (dronyOrder.getMotivationToClose() == null ? " " + message.getReasons()
+              : dronyOrder.getMotivationToClose()));
     } else if (message.getType() == IMessage.Type.ORDER_FILL_OK) {
+      this.decisions.log(message.getCreationTime(), paramDrony.getName(),
+          dronyOrder.getDirection().name(), Outcome.FILL,
+          order.getLabel() + " @ " + order.getOpenPrice());
       this.delegateDrony.getClusterManager().onOrderFilled(
           this.paramDrony.getOrderCluster(),
           order.getLabel(),
@@ -200,8 +213,13 @@ public class DronyStrategy implements StrategyInterface {
 
     this.stopLossTakeProfitService.updateStopLossAndTakeProfitByBar(askBar, bidBar, instrument);
 
+    long currentBarTime = bidBar.getTime();
+
     /* Check Trading Time */
     if (!TimeUtility.checkTradingTimeLimit(this.paramDrony, bidBar)) {
+      decisions.log(currentBarTime, paramDrony.getName(), null, Outcome.BLOCCATO,
+          "fuori orario trading (" + paramDrony.getStartTradingTime()
+              + " - " + paramDrony.getEndTradingTime() + ")");
       return;
     }
 
@@ -210,12 +228,21 @@ public class DronyStrategy implements StrategyInterface {
 
     /* Prevent Multiple orders */
     if (paramDrony.isPreventMultipleOrders() && (sellOrders > 0 || buyOrders > 0)) {
+      decisions.log(currentBarTime, paramDrony.getName(), null, Outcome.BLOCCATO,
+          "ordine già attivo (buy=" + buyOrders + " sell=" + sellOrders
+              + "), preventMultipleOrders");
       return;
     }
 
-    long currentBarTime = bidBar.getTime();
+    DirectionEnum barColor = BarUtility.getBarColor(bidBar);
 
-    if (BarUtility.getBarColor(bidBar) == DirectionEnum.SELL && sellOrders == 0) {
+    if (barColor == DirectionEnum.DOJI) {
+      decisions.log(currentBarTime, paramDrony.getName(), null, Outcome.SCARTATO,
+          "barra doji, nessuna direzione");
+      return;
+    }
+
+    if (barColor == DirectionEnum.SELL && sellOrders == 0) {
       if (paramDrony.getStrategyType().equals(StrategyTypeEnum.FULL)
           || paramDrony.getStrategyType().equals(StrategyTypeEnum.SHORT)) {
 
@@ -223,10 +250,13 @@ public class DronyStrategy implements StrategyInterface {
             .getBars(instrument, period, OfferSide.BID, Filter.NO_FILTER,
                 Math.max(paramDrony.getN(), 2), currentBarTime, 0);
         roboStrategyBar(instrument, period, sellBars, DirectionEnum.SELL);
+      } else {
+        decisions.log(currentBarTime, paramDrony.getName(), DirectionEnum.SELL.name(),
+            Outcome.BLOCCATO, "strategyType " + paramDrony.getStrategyType() + " esclude SELL");
       }
     }
 
-    if (BarUtility.getBarColor(bidBar) == DirectionEnum.BUY && buyOrders == 0) {
+    if (barColor == DirectionEnum.BUY && buyOrders == 0) {
       if (paramDrony.getStrategyType().equals(StrategyTypeEnum.FULL)
           || paramDrony.getStrategyType().equals(StrategyTypeEnum.LONG)) {
 
@@ -234,6 +264,9 @@ public class DronyStrategy implements StrategyInterface {
             .getBars(instrument, period, OfferSide.ASK, Filter.NO_FILTER,
                 Math.max(paramDrony.getN(), 2), currentBarTime, 0);
         roboStrategyBar(instrument, period, buyBars, DirectionEnum.BUY);
+      } else {
+        decisions.log(currentBarTime, paramDrony.getName(), DirectionEnum.BUY.name(),
+            Outcome.BLOCCATO, "strategyType " + paramDrony.getStrategyType() + " esclude BUY");
       }
     }
 
@@ -251,11 +284,11 @@ public class DronyStrategy implements StrategyInterface {
     List<BarTestResultLog> logs = new ArrayList<>();
 
     if (!validateEachBar(historyBars, instrument, direction, logs)) {
-      return failAndLog(logs, instrument);
+      return failAndLog(logs, instrument, direction);
     }
 
     if (!validateCurrentBar(historyBars, instrument, period, direction, logs)) {
-      return failAndLog(logs, instrument);
+      return failAndLog(logs, instrument, direction);
     }
 
     IBar bar = historyBars.get(historyBars.size() - 1);
@@ -306,10 +339,21 @@ public class DronyStrategy implements StrategyInterface {
     return result.getFirst();
   }
 
-  private boolean failAndLog(List<BarTestResultLog> logs, Instrument instrument) {
+  private boolean failAndLog(List<BarTestResultLog> logs, Instrument instrument,
+      DirectionEnum direction) {
     if (this.outputVerbose) {
       this.dronyLogBars.add(new DronyLogBar(logs, instrument, this.outputVerbose));
     }
+
+    BarTestResultLog lastLog = logs.get(logs.size() - 1);
+    String detail = lastLog.getTestResults().stream()
+        .filter(r -> !r.isResult())
+        .map(BarTestResult::getMessage)
+        .findFirst()
+        .orElse("filtro non superato");
+    decisions.log(lastLog.getBar().getTime(), paramDrony.getName(), direction.name(),
+        Outcome.SCARTATO, detail);
+
     return false;
   }
 
