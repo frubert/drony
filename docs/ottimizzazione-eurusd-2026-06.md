@@ -38,3 +38,25 @@ loggate nel giornale), parser ranges ed etichette con '='. Round 6 ha mostrato
 che il margine vero è nella struttura del rischio: stop stretti (Floor% 50-200)
 sono strutturalmente perdenti per questa strategia (−936 pips il peggiore),
 lo stop largo con break-even è l'assetto che sopravvive.
+
+## Verifica 2025 (anno intero, tick reali — aggiunta 12/06/2026)
+
+| Combo | TP | 2025: trades | plPips | Stop subiti | DD pips |
+|---|---|---|---|---|---|
+| **C0001** | **Cap Abs 20** | 61 | **+239.4** | **0** | **0** |
+| C0002 | 20 + Cap% 40 | 58 | +169.1 | 2 | 139.7 |
+| C0003 | Cap Abs 10 | 62 | +118.5 | 0 | 0 |
+| C0004 | Cap Abs 40 | 57 | +37.8 | 3 | 197.2 |
+
+Tutte e quattro le varianti positive anche nel 2025 (regime di mercato a 4-5
+anni dall'ottimizzazione, volume di setup ~8× il 2021): la struttura regge.
+
+**Raccomandazione aggiornata: C0001 (Cap Abs 20)**, non più C0004. Motivo
+strutturale, non solo statistico: il trigger del break-even è proporzionale al
+TP (%a = 100% del delta TP), quindi con TP 20 la protezione si arma a metà
+strada rispetto al TP 40 — finestra di esposizione allo stop dimezzata. Nel
+2025: C0001 zero stop subiti su 61 trade, C0004 tre stop (−139.7, −123.8,
+−57.5) che hanno quasi azzerato l'anno.
+
+Storico completo C0001: Q4 2020 +34.1 · Q2 2021 +19.5 · 2025 +239.4 — sempre
+positivo, mai uno stop pieno nelle finestre a tick.
