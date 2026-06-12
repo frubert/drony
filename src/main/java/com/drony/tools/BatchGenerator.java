@@ -119,7 +119,8 @@ public class BatchGenerator {
             if (line.isEmpty() || line.startsWith("#")) {
                 continue;
             }
-            int eq = line.indexOf('=');
+            /* ultimo '=': alcune etichette di riga contengono '=' al loro interno */
+            int eq = line.lastIndexOf('=');
             if (eq < 0) {
                 throw new IllegalArgumentException("Riga ranges senza '=': " + line);
             }
