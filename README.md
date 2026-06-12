@@ -62,6 +62,13 @@ soglie dei filtri (righe 5–31), SL/TP (14–19), orari trading (23–24), clus
 edge order (47–54). Riferimento completo: `stategy/utility/ReaderParam.java` e
 `stategy/data/ParamDrony.java`.
 
+## Comportamenti non ovvi
+
+Alcune scelte di comportamento intenzionali ma non evidenti dal codice
+(calcolo `mod`, filtri shadow, edge order, cluster) sono documentate in
+[docs/NOTE-COMPORTAMENTO.md](docs/NOTE-COMPORTAMENTO.md). Leggerlo prima
+di modificare la logica di trading.
+
 ## Storia
 
 Il repository originale (Bitbucket, 2019–2021, branch drony04_02/drony04_03/drony05)
