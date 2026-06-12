@@ -215,6 +215,9 @@ public class BatchGenerator {
             throws IOException {
 
         int nameRow = labelIndex.get(ReaderParam.normalize("Name"));
+        /* cluster unico per combinazione: altrimenti le combo condividono il cluster
+           del template e si chiudono gli ordini a vicenda, falsando i confronti */
+        int clusterRow = labelIndex.getOrDefault(ReaderParam.normalize("order cluster"), -1);
 
         try (FileOutputStream os = new FileOutputStream(outFile);
                 Workbook wb = new Workbook(os, "DronyBatch", null)) {
@@ -234,6 +237,8 @@ public class BatchGenerator {
 
                     if (r == nameRow) {
                         ws.value(r, outCol, comboName(comboOffset + c));
+                    } else if (r == clusterRow && !combos.get(c).containsKey(normalized)) {
+                        ws.value(r, outCol, "CL_" + comboName(comboOffset + c));
                     } else if (combos.get(c).containsKey(normalized)) {
                         writeOverride(ws, r, outCol, normalized, combos.get(c).get(normalized));
                     } else if (isTimeLabel(normalized)) {
