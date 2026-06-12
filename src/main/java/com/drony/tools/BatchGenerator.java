@@ -246,13 +246,13 @@ public class BatchGenerator {
                     } else if (combos.get(c).containsKey(normalized)) {
                         writeOverride(ws, r, outCol, normalized, combos.get(c).get(normalized));
                     } else if (isTimeLabel(normalized)) {
-                        /* le celle orario vanno riscritte come data formattata, non come numero grezzo */
-                        final int rowIdx = r;
-                        final int colIdx = outCol;
-                        row.getCellAsDate(BASE_COL).ifPresent(date -> {
-                            ws.value(rowIdx, colIdx, date);
-                            ws.style(rowIdx, colIdx).format("HH:mm").set();
-                        });
+                        /* orari: copia del seriale Excel grezzo (frazione di giorno) con
+                           formato HH:mm — il round-trip via LocalDateTime produce -1 */
+                        Cell base = row.getCell(BASE_COL);
+                        if (base != null && base.getType() == org.dhatim.fastexcel.reader.CellType.NUMBER) {
+                            ws.value(r, outCol, (BigDecimal) base.getValue());
+                            ws.style(r, outCol).format("HH:mm").set();
+                        }
                     } else {
                         copyCell(ws, r, outCol, row.getCell(BASE_COL));
                     }
@@ -284,7 +284,8 @@ public class BatchGenerator {
             String value) {
         if (isTimeLabel(normalizedLabel)) {
             LocalTime time = LocalTime.parse(value.length() == 4 ? "0" + value : value);
-            ws.value(r, c, LocalDateTime.of(1999, 1, 1, time.getHour(), time.getMinute()));
+            double serial = (time.getHour() * 3600 + time.getMinute() * 60) / 86400.0;
+            ws.value(r, c, BigDecimal.valueOf(serial));
             ws.style(r, c).format("HH:mm").set();
             return;
         }
