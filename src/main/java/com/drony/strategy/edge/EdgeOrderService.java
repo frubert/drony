@@ -64,30 +64,30 @@ public class EdgeOrderService {
         }
     }
 
-    /** Garantisce che ogni ordine principale FILLED tracciato abbia il suo ordine edge, ricreandolo se sparito. */
+    /**
+     * Garantisce che ogni ordine principale FILLED tracciato abbia il suo ordine edge,
+     * ricreandolo se sparito. Itera sugli ordini tracciati in edgeMaps (pochi) invece
+     * che su tutti gli ordini dell'engine: viene chiamato a ogni tick.
+     */
     public void manageActiveEdge() throws JFException {
 
-        for (IOrder order : this.engine.getOrders()) {
-
-            if (order.getState() != IOrder.State.FILLED) {
-                continue;
-            }
-
-            EdgeOrder edgeOrder = this.edgeMaps.get(order.getLabel());
-            if (edgeOrder == null) {
-                continue;
-            }
-
-            String labelEdge = edgeOrder.getLabelEdge();
+        for (EdgeOrder edgeOrder : this.edgeMaps.values()) {
 
             try {
+                IOrder order = this.engine.getOrder(edgeOrder.getLabel());
+
+                if (order == null || order.getState() != IOrder.State.FILLED) {
+                    continue;
+                }
+
+                String labelEdge = edgeOrder.getLabelEdge();
                 IOrder orderEdge = labelEdge == null ? null : this.engine.getOrder(labelEdge);
 
                 if (orderEdge == null) {
                     this.createEdge(order);
                 }
             } catch (JFException e) {
-                log.error("manageActiveEdge failed for order {}", order.getLabel(), e);
+                log.error("manageActiveEdge failed for order {}", edgeOrder.getLabel(), e);
             }
         }
     }

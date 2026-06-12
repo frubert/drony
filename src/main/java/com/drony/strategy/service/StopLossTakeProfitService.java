@@ -19,29 +19,26 @@ public class StopLossTakeProfitService {
   private final ParamDrony paramDrony;
 
   private final IConsole console;
-  private final IEngine engine;
 
-  private final String identifier;
   private final Map<String, DronyOrder> orders;
+  private final ActiveOrderRegistry orderRegistry;
 
-  public StopLossTakeProfitService(IContext context, ParamDrony paramDrony, String identifier,
-      Map<String, DronyOrder> orders) {
+  public StopLossTakeProfitService(IContext context, ParamDrony paramDrony,
+      Map<String, DronyOrder> orders, ActiveOrderRegistry orderRegistry) {
     this.paramDrony = paramDrony;
 
     this.console = context.getConsole();
-    this.engine = context.getEngine();
 
-    this.identifier = identifier;
     this.orders = orders;
+    this.orderRegistry = orderRegistry;
   }
 
   public void updateStopLossAndTakeProfitByBar(IBar askBar, IBar bidBar, Instrument instrument)
       throws JFException {
 
-    for (IOrder order : this.engine.getOrders()) {
+    for (IOrder order : this.orderRegistry.liveOrders()) {
 
-      if (order.getLabel().startsWith(this.identifier)
-          && order.getState() == IOrder.State.FILLED) {
+      if (order.getState() == IOrder.State.FILLED) {
 
         DronyOrder dronyOrder = this.orders.get(order.getLabel());
         dronyOrder.addBars(askBar, bidBar);
@@ -127,10 +124,8 @@ public class StopLossTakeProfitService {
               order.getOrderCommand().isLong() ? askBar : bidBar);
         }
 
-      } else if (order.getLabel().startsWith(this.identifier)
-          && order.getState() != IOrder.State.CANCELED
-          && order.getState() != IOrder.State.CLOSED
-          && order.getState() != IOrder.State.FILLED) {
+      } else {
+        /* liveOrders() esclude già CLOSED e CANCELED: qui restano CREATED/OPENED/SUBMITTED */
 
         DronyOrder dronyOrder = this.orders.get(order.getLabel());
 

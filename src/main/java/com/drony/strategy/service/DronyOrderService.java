@@ -38,11 +38,12 @@ public class DronyOrderService {
   private final DelegateDrony delegateDrony;
   private final String identifier;
   private final Map<String, DronyOrder> orders;
+  private final ActiveOrderRegistry orderRegistry;
   private final boolean outputVerbose;
 
   public DronyOrderService(IContext context, ParamDrony paramDrony, DelegateDrony delegateDrony,
       String identifier,
-      Map<String, DronyOrder> orders, boolean outputVerbose) {
+      Map<String, DronyOrder> orders, ActiveOrderRegistry orderRegistry, boolean outputVerbose) {
 
     this.console = context.getConsole();
     this.engine = context.getEngine();
@@ -51,6 +52,7 @@ public class DronyOrderService {
     this.delegateDrony = delegateDrony;
     this.identifier = identifier;
     this.orders = orders;
+    this.orderRegistry = orderRegistry;
     this.outputVerbose = outputVerbose;
   }
 
@@ -146,6 +148,7 @@ public class DronyOrderService {
 
       if (order.getState() == IOrder.State.CREATED) {
         this.orders.put(orderLabel, dronyOrder);
+        this.orderRegistry.register(order);
 
         dronyOrder.getWriterExcel().writeHistoricalBar();
         dronyOrder.getWriterExcel().writeOrder("CREATE ORDER " + direction + " ", order, bar);
@@ -172,34 +175,19 @@ public class DronyOrderService {
     try {
       if (!TimeUtility.checkTradingTimeLimit(this.paramDrony, time)) {
 
-        for (IOrder order : this.engine.getOrders()) {
-          if (order.getLabel().startsWith(this.identifier)) {
-            if (order.getState() != IOrder.State.FILLED
-                && order.getState() != IOrder.State.CANCELED
-                && order.getState() != IOrder.State.CLOSED) {
-              DronyOrder dronyOrder = orders.get(order.getLabel());
-              dronyOrder.setMotivationToClose(" BY ENDING TIME LIMIT");
-              order.close();
-            }
+        for (IOrder order : this.orderRegistry.liveOrders()) {
+          if (order.getState() != IOrder.State.FILLED) {
+            closeWithMotivation(order, " BY ENDING TIME LIMIT");
           }
         }
       }
 
-      if (this.paramDrony.isActiveFreeWeekEnd()) {
-        ZonedDateTime date = Instant.ofEpochMilli(time).atZone(ZoneId.of("UTC"));
-        if ((date.getDayOfWeek().equals(DayOfWeek.FRIDAY) && date.getHour() >= 18)
-            || date.getDayOfWeek().equals(DayOfWeek.SATURDAY) || date.getDayOfWeek()
-            .equals(DayOfWeek.SUNDAY)) {
-          for (IOrder order : this.engine.getOrders()) {
-            if (order.getLabel().startsWith(this.identifier)) {
-              if (order.getState() == IOrder.State.FILLED
-                  || order.getState() == IOrder.State.OPENED
-                  || order.getState() == IOrder.State.CREATED) {
-                DronyOrder dronyOrder = orders.get(order.getLabel());
-                dronyOrder.setMotivationToClose(" BY FREE WEEKEND");
-                order.close();
-              }
-            }
+      if (this.paramDrony.isActiveFreeWeekEnd() && isFreeWeekEnd(time)) {
+        for (IOrder order : this.orderRegistry.liveOrders()) {
+          if (order.getState() == IOrder.State.FILLED
+              || order.getState() == IOrder.State.OPENED
+              || order.getState() == IOrder.State.CREATED) {
+            closeWithMotivation(order, " BY FREE WEEKEND");
           }
         }
       }
@@ -207,5 +195,21 @@ public class DronyOrderService {
       this.console.getErr().println(e.getMessage());
       this.console.getErr().println(e.toString());
     }
+  }
+
+  private static boolean isFreeWeekEnd(Long time) {
+    ZonedDateTime date = Instant.ofEpochMilli(time).atZone(ZoneId.of("UTC"));
+    DayOfWeek day = date.getDayOfWeek();
+    return (day == DayOfWeek.FRIDAY && date.getHour() >= 18)
+        || day == DayOfWeek.SATURDAY
+        || day == DayOfWeek.SUNDAY;
+  }
+
+  private void closeWithMotivation(IOrder order, String motivation) throws JFException {
+    DronyOrder dronyOrder = orders.get(order.getLabel());
+    if (dronyOrder != null) {
+      dronyOrder.setMotivationToClose(motivation);
+    }
+    order.close();
   }
 }

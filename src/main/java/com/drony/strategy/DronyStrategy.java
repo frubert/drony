@@ -1,5 +1,6 @@
 package com.drony.strategy;
 
+import com.drony.strategy.service.ActiveOrderRegistry;
 import com.drony.strategy.service.DronyOrderService;
 import com.drony.strategy.service.StopLossTakeProfitService;
 import com.drony.strategy.test.*;
@@ -36,8 +37,9 @@ public class DronyStrategy implements StrategyInterface {
 
   private boolean outputVerbose;
 
-  public Map<String, DronyOrder> orders = new HashMap<>();
-  public List<DronyLogBar> dronyLogBars = new ArrayList<>();
+  private final Map<String, DronyOrder> orders = new HashMap<>();
+  private final List<DronyLogBar> dronyLogBars = new ArrayList<>();
+  private final ActiveOrderRegistry orderRegistry = new ActiveOrderRegistry();
 
 
   private static final String STRATEGY = "DRONY_42";
@@ -80,10 +82,10 @@ public class DronyStrategy implements StrategyInterface {
 
     this.dronyOrderService =
         new DronyOrderService(context, this.paramDrony, this.delegateDrony, this.identifier,
-            this.orders, this.outputVerbose);
+            this.orders, this.orderRegistry, this.outputVerbose);
 
     this.stopLossTakeProfitService = new StopLossTakeProfitService(context, this.paramDrony,
-        this.identifier, this.orders);
+        this.orders, this.orderRegistry);
   }
 
   @Override
@@ -96,6 +98,7 @@ public class DronyStrategy implements StrategyInterface {
 
     DronyOrder dronyOrder = null;
     if (order.getLabel().startsWith(this.identifier)) {
+      this.orderRegistry.onOrderMessage(order);
       dronyOrder = this.orders.get(order.getLabel());
     }
 
@@ -152,9 +155,9 @@ public class DronyStrategy implements StrategyInterface {
 
     this.dronyOrderService.closeAllOrderOpenAfterTime(tick.getTime());
 
-    for (IOrder order : engine.getOrders()) {
+    for (IOrder order : this.orderRegistry.liveOrders()) {
 
-      if (order.getLabel().startsWith(identifier) && order.getState() == IOrder.State.FILLED) {
+      if (order.getState() == IOrder.State.FILLED) {
 
         if (paramDrony.isMacroPL()) {
           if (order.getProfitLossInPips() > paramDrony.getMacroPLProfit()) {
@@ -202,17 +205,17 @@ public class DronyStrategy implements StrategyInterface {
       return;
     }
 
-    OrderCounter orderCounter = new OrderCounter(this.engine, this.identifier);
+    int buyOrders = this.orderRegistry.countBuyOrders();
+    int sellOrders = this.orderRegistry.countSellOrders();
 
     /* Prevent Multiple orders */
-    if (paramDrony.isPreventMultipleOrders() && (orderCounter.getSellOrders() > 0
-        || orderCounter.getBuyOrders() > 0)) {
+    if (paramDrony.isPreventMultipleOrders() && (sellOrders > 0 || buyOrders > 0)) {
       return;
     }
 
     long currentBarTime = bidBar.getTime();
 
-    if (BarUtility.getBarColor(bidBar) == DirectionEnum.SELL && orderCounter.getSellOrders() == 0) {
+    if (BarUtility.getBarColor(bidBar) == DirectionEnum.SELL && sellOrders == 0) {
       if (paramDrony.getStrategyType().equals(StrategyTypeEnum.FULL)
           || paramDrony.getStrategyType().equals(StrategyTypeEnum.SHORT)) {
 
@@ -223,7 +226,7 @@ public class DronyStrategy implements StrategyInterface {
       }
     }
 
-    if (BarUtility.getBarColor(bidBar) == DirectionEnum.BUY && orderCounter.getBuyOrders() == 0) {
+    if (BarUtility.getBarColor(bidBar) == DirectionEnum.BUY && buyOrders == 0) {
       if (paramDrony.getStrategyType().equals(StrategyTypeEnum.FULL)
           || paramDrony.getStrategyType().equals(StrategyTypeEnum.LONG)) {
 
