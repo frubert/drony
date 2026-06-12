@@ -14,21 +14,37 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
+/**
+ * Legge il file Excel dei parametri: una colonna per strategia (dalla colonna C in poi),
+ * una riga per parametro. Le righe sono individuate dall'etichetta in colonna A,
+ * non dalla posizione: righe spostate o aggiunte nel foglio non rompono la lettura.
+ */
 public class ReaderParam {
 
+    private static final int FIRST_STRATEGY_COL = 2;
+
     private List<ParamDrony> dronies;
+
+    private List<Row> rows;
+    private final Map<String, Integer> labelIndex = new HashMap<>();
 
     public ReaderParam(File file, IConsole console) throws IOException {
 
         try (InputStream is = new FileInputStream(file); ReadableWorkbook wb = new ReadableWorkbook(is)) {
             Sheet sheet = wb.getFirstSheet();
             try {
-                dronies = readRow(sheet.read(), console);
-            } catch (Exception e){
+                this.rows = sheet.read();
+                indexLabels();
+                dronies = readColumns(console);
+            } catch (Exception e) {
                 console.getErr().println(e.getMessage());
                 console.getErr().println(e);
+                throw new IOException("Errore lettura parametri da " + file.getName(), e);
             }
         }
     }
@@ -37,89 +53,143 @@ public class ReaderParam {
         return dronies;
     }
 
-    private List<ParamDrony> readRow(List<Row> rows, IConsole console) {
+    /**
+     * Normalizza un'etichetta di riga: minuscole, '%' diventa "perc", tutto il resto
+     * dei caratteri non alfanumerici viene rimosso. Rende il match insensibile a
+     * spazi, maiuscole e punteggiatura ("End   TradingTime:" == "endtradingtime").
+     */
+    private static String normalize(String label) {
+        return label.toLowerCase()
+                .replace("%", "perc")
+                .replaceAll("[^a-z0-9]", "");
+    }
+
+    private void indexLabels() {
+        for (int i = 0; i < rows.size(); i++) {
+            Optional<String> label = rows.get(i).getCellAsString(0);
+            if (label.isPresent() && !U.isEmptyOrNull(label.get())) {
+                labelIndex.putIfAbsent(normalize(label.get()), i);
+            }
+        }
+    }
+
+    private Row rowOf(String label) {
+        Integer index = labelIndex.get(normalize(label));
+        if (index == null) {
+            throw new IllegalStateException(
+                    "Etichetta parametro non trovata in colonna A del file Excel: '" + label + "'");
+        }
+        return rows.get(index);
+    }
+
+    private String stringValue(String label, int colIndex, String defaultValue) {
+        return U.clean(rowOf(label).getCellAsString(colIndex).orElse(defaultValue));
+    }
+
+    private double numberValue(String label, int colIndex, String defaultValue) {
+        return rowOf(label).getCellAsNumber(colIndex).orElse(new BigDecimal(defaultValue)).doubleValue();
+    }
+
+    private int intValue(String label, int colIndex, String defaultValue) {
+        return rowOf(label).getCellAsNumber(colIndex).orElse(new BigDecimal(defaultValue)).intValue();
+    }
+
+    private BigDecimal requiredNumber(String label, int colIndex) {
+        Cell cell = rowOf(label).getCell(colIndex);
+        if (cell == null) {
+            throw new IllegalStateException("Parametro obbligatorio '" + label + "' vuoto (colonna " + colIndex + ")");
+        }
+        return cell.asNumber();
+    }
+
+    private boolean booleanValue(String label, int colIndex, boolean defaultValue) {
+        return parseBoolean(label, rowOf(label).getCell(colIndex), defaultValue);
+    }
+
+    private List<ParamDrony> readColumns(IConsole console) {
 
         List<ParamDrony> params = new ArrayList<>();
 
-        int colIndex = 2;
-        while (rows.get(1).getCellAsString(colIndex).isPresent()
-                && !U.isEmptyOrNull(rows.get(1).getCellAsString(colIndex).get())) {
+        int colIndex = FIRST_STRATEGY_COL;
+        while (rowOf("Name").getCellAsString(colIndex).isPresent()
+                && !U.isEmptyOrNull(rowOf("Name").getCellAsString(colIndex).get())) {
 
             ParamDrony param = new ParamDrony();
 
-            param.setName(rows.get(1).getCellAsString(colIndex).orElse(""));
-            param.setSelectedInstrument(Instrument.valueOf(U.clean(rows.get(2).getCellAsString(colIndex).orElse("EURUSD"))));
-            param.setSelectedPeriod(Period.valueOf(U.clean(rows.get(3).getCellAsString(colIndex).orElse("ONE_HOUR"))));
-            param.setOrderSize(rows.get(4).getCellAsNumber(colIndex).orElse(new BigDecimal("0.2")).doubleValue());
-            param.setN(rows.get(5).getCellAsNumber(colIndex).orElse(new BigDecimal("2")).intValue());
+            param.setName(stringValue("Name", colIndex, ""));
+            param.setSelectedInstrument(Instrument.valueOf(stringValue("Selected Instrument:", colIndex, "EURUSD")));
+            param.setSelectedPeriod(Period.valueOf(stringValue("Selected Period:", colIndex, "ONE_HOUR")));
+            param.setOrderSize(numberValue("OrderSize:", colIndex, "0.2"));
+            param.setN(intValue("N Bars:", colIndex, "2"));
 
-            param.setBody_perc_min(rows.get(6).getCellAsNumber(colIndex).orElse(new BigDecimal("10")).doubleValue());
-            param.setBody_perc_max(rows.get(7).getCellAsNumber(colIndex).orElse(new BigDecimal("95")).doubleValue());
-            param.setMod_min(rows.get(8).getCellAsNumber(colIndex).orElse(new BigDecimal("10")).doubleValue());
-            param.setMod_max(rows.get(9).getCellAsNumber(colIndex).orElse(new BigDecimal("100")).doubleValue());
-            param.setBody_abs_min(rows.get(10).getCellAsNumber(colIndex).orElse(new BigDecimal("0.5")).doubleValue());
-            param.setBody_abs_max(rows.get(11).getCellAsNumber(colIndex).orElse(new BigDecimal("50")).doubleValue());
+            param.setBody_perc_min(numberValue("Body % Min:", colIndex, "10"));
+            param.setBody_perc_max(numberValue("Body % Max:", colIndex, "95"));
+            param.setMod_min(numberValue("Mod Min :", colIndex, "10"));
+            param.setMod_max(numberValue("Mod Max :", colIndex, "100"));
+            param.setBody_abs_min(numberValue("Body abs Min:", colIndex, "0.5"));
+            param.setBody_abs_max(numberValue("Body abs Max :", colIndex, "50"));
 
-            param.setIndent(rows.get(12).getCellAsNumber(colIndex).orElse(new BigDecimal("0")).doubleValue());
-            param.setIndentPercentPennachio(rows.get(13).getCellAsNumber(colIndex).orElse(new BigDecimal("0")).doubleValue());
+            param.setIndent(numberValue("Indent:", colIndex, "0"));
+            param.setIndentPercentPennachio(numberValue("Indent % shadow:", colIndex, "0"));
 
-            param.setCap_abs(rows.get(14).getCellAsNumber(colIndex).orElse(new BigDecimal("20")).doubleValue());
-            param.setCap_perc(rows.get(15).getCellAsNumber(colIndex).orElse(new BigDecimal("0")).doubleValue());
-            param.setCap_attn(rows.get(16).getCellAsNumber(colIndex).orElse(new BigDecimal("90")).doubleValue());
+            param.setCap_abs(numberValue("Cap Abs:", colIndex, "20"));
+            param.setCap_perc(numberValue("Cap %:", colIndex, "0"));
+            param.setCap_attn(numberValue("Cap attn:", colIndex, "90"));
 
-            param.setFloor_abs(rows.get(17).getCellAsNumber(colIndex).orElse(new BigDecimal("40")).doubleValue());
-            param.setFloor_perc(rows.get(18).getCellAsNumber(colIndex).orElse(new BigDecimal("0")).doubleValue());
-            param.setFloor_attn(rows.get(19).getCellAsNumber(colIndex).orElse(new BigDecimal("10")).doubleValue());
+            param.setFloor_abs(numberValue("Floor abs:", colIndex, "40"));
+            param.setFloor_perc(numberValue("Floor %:", colIndex, "0"));
+            param.setFloor_attn(numberValue("Floor attn:", colIndex, "10"));
 
-            param.setSlope_min(rows.get(20).getCellAsNumber(colIndex).orElse(new BigDecimal("1")).doubleValue());
-            param.setSlope_max(rows.get(21).getCellAsNumber(colIndex).orElse(new BigDecimal("20")).doubleValue());
+            param.setSlope_min(numberValue("Slope Min:", colIndex, "1"));
+            param.setSlope_max(numberValue("Slope Max:", colIndex, "20"));
 
-            param.setSlippage(rows.get(22).getCellAsNumber(colIndex).orElse(new BigDecimal("0")).doubleValue());
+            param.setSlippage(numberValue("Slippage:", colIndex, "0"));
 
-            param.setStartTradingTime(rows.get(23).getCellAsDate(colIndex).orElse(LocalDateTime.of(1999,1,1, 7 , 0)).toLocalTime());
-            param.setEndTradingTime(rows.get(24).getCellAsDate(colIndex).orElse(LocalDateTime.of(1999,1,1, 17 , 0)).toLocalTime());
+            param.setStartTradingTime(rowOf("Start TradingTime:").getCellAsDate(colIndex)
+                    .orElse(LocalDateTime.of(1999, 1, 1, 7, 0)).toLocalTime());
+            param.setEndTradingTime(rowOf("End TradingTime:").getCellAsDate(colIndex)
+                    .orElse(LocalDateTime.of(1999, 1, 1, 17, 0)).toLocalTime());
 
-            param.setNumCandlesValid(rows.get(25).getCellAsNumber(colIndex).orElse(new BigDecimal("4")).intValue());
-            param.setStrategyType(U.clean(rows.get(26).getCellAsString(colIndex).orElse("FULL")));
+            param.setNumCandlesValid(intValue("Num CandlesValid;", colIndex, "4"));
+            param.setStrategyType(stringValue("strategyType", colIndex, "FULL"));
 
-            param.setNumBodyShadowBars(rows.get(27).getCellAsNumber(colIndex).orElse(new BigDecimal("1")).intValue());
-            param.setMinBodyShadowPercentage(rows.get(28).getCellAsNumber(colIndex).orElse(new BigDecimal("20")).doubleValue());
-            param.setMinBodyShadow(rows.get(29).getCellAsNumber(colIndex).orElse(new BigDecimal("0")).doubleValue());
-            param.setMinFutureBodyShadowPercentage(rows.get(30).getCellAsNumber(colIndex).orElse(new BigDecimal("0")).doubleValue());
-            param.setMinFutureBodyShadow(rows.get(31).getCellAsNumber(colIndex).orElse(new BigDecimal("0")).doubleValue());
+            param.setNumBodyShadowBars(intValue("numBodyShadowBars:", colIndex, "1"));
+            param.setMinBodyShadowPercentage(numberValue("minBodyShadow%", colIndex, "20"));
+            param.setMinBodyShadow(numberValue("minBodyShadow", colIndex, "0"));
+            param.setMinFutureBodyShadowPercentage(numberValue("minFutureBodyShadow%", colIndex, "0"));
+            param.setMinFutureBodyShadow(numberValue("minFutureBodyShadow", colIndex, "0"));
 
-            param.setMacroPL(parseBoolean(rows.get(32).getCell(colIndex), false));
+            param.setMacroPL(booleanValue("macroPL", colIndex, false));
+            param.setMacroPLProfit(numberValue("macroPLProfit", colIndex, "30"));
+            param.setMacroPLLoss(numberValue("macroPLLoss", colIndex, "200"));
 
-            param.setMacroPLProfit(rows.get(33).getCellAsNumber(colIndex).orElse(new BigDecimal("30")).doubleValue());
-            param.setMacroPLLoss(rows.get(34).getCellAsNumber(colIndex).orElse(new BigDecimal("200")).doubleValue());
-            param.setNumColorStoryBars(rows.get(35).getCellAsNumber(colIndex).orElse(new BigDecimal("7")).intValue());
+            param.setNumColorStoryBars(intValue("numColorStoryBars", colIndex, "7"));
+            param.setColorStorySameBars(numberValue("colorStorySameBars", colIndex, "7"));
 
-            param.setColorStorySameBars(rows.get(36).getCellAsNumber(colIndex).orElse(new BigDecimal("7")).doubleValue());
-            param.setAttivaMonotona(parseBoolean(rows.get(37).getCell(colIndex),true));
+            param.setAttivaMonotona(booleanValue("Pinza monotona de/crescente", colIndex, true));
+            param.setOrderNumMaxBar(intValue("Num max barre per ordine", colIndex, "10"));
+            param.setPreventMultipleOrders(booleanValue("preventMultipleOrders", colIndex, true));
+            param.setWaitNBarPinza(intValue("waitNBarPinza", colIndex, "0"));
 
-            param.setOrderNumMaxBar(rows.get(38).getCellAsNumber(colIndex).orElse(new BigDecimal("10")).intValue());
-            param.setPreventMultipleOrders(parseBoolean(rows.get(39).getCell(colIndex), true));
+            param.setOrderCluster(rowOf("order cluster").getCellAsString(colIndex).orElse(""));
+            param.setOrderClusterPriority(intValue("order cluster priority", colIndex, "0"));
+            param.setMaxOrderByCluster(intValue("Max order by cluster", colIndex, "1"));
 
-            param.setWaitNBarPinza(rows.get(40).getCellAsNumber(colIndex).orElse(BigDecimal.ZERO).intValue());
+            param.setActiveFreeWeekEnd(booleanValue("FreeWeekEnd", colIndex, false));
 
-            param.setOrderCluster(rows.get(41).getCellAsString(colIndex).orElse(""));
-            param.setOrderClusterPriority(rows.get(42).getCellAsNumber(colIndex).orElse(BigDecimal.ZERO).intValue());
-            param.setMaxOrderByCluster(rows.get(43).getCellAsNumber(colIndex).orElse(BigDecimal.ONE).intValue());
+            param.setPercentDeltaTakeProfitUpdateStopLoss(
+                    numberValue("IF %a TP > SL = OpenPrice + %bTP)", colIndex, "0"));
+            param.setPercentDeltaTakeProfitAddToStartPrice(
+                    numberValue("%b TP to add on OpenPrice", colIndex, "0"));
 
-            param.setActiveFreeWeekEnd(parseBoolean(rows.get(44).getCell(colIndex), false));
-
-            param.setPercentDeltaTakeProfitUpdateStopLoss(rows.get(45).getCellAsNumber(colIndex).orElse(new BigDecimal("0")).doubleValue());
-            param.setPercentDeltaTakeProfitAddToStartPrice(rows.get(46).getCellAsNumber(colIndex).orElse(new BigDecimal("0")).doubleValue());
-
-            param.setActiveEdgeOrder(parseBoolean(rows.get(47).getCell(colIndex), false));
-            param.setOrderSizeEdgeOrder(rows.get(48).getCell(colIndex).asNumber());
-            param.setIdentEdgeOrder(rows.get(49).getCell(colIndex).asNumber());
-            param.setIndentPercentPennachioEdgeOrder(rows.get(50).getCell(colIndex).asNumber());
-            param.setIndentPercentModEdgeOrder(rows.get(51).getCell(colIndex).asNumber());
-            param.setStopLossEdgeOrder(rows.get(52).getCell(colIndex).asNumber());
-            param.setPercentStopLossIdent(rows.get(53).getCell(colIndex).asNumber());
-            param.setTakeProfitEdgeOrder(rows.get(54).getCell(colIndex).asNumber());
-
+            param.setActiveEdgeOrder(booleanValue("activeEdgeOrder", colIndex, false));
+            param.setOrderSizeEdgeOrder(requiredNumber("EdgeOrderSize", colIndex));
+            param.setIdentEdgeOrder(requiredNumber("identEdgeOrder", colIndex));
+            param.setIndentPercentPennachioEdgeOrder(requiredNumber("indentPercentPennachioEdgeOrder", colIndex));
+            param.setIndentPercentModEdgeOrder(requiredNumber("indentPercentModEdgeOrder", colIndex));
+            param.setStopLossEdgeOrder(requiredNumber("stopLossEdgeOrder", colIndex));
+            param.setPercentStopLossIdent(requiredNumber("percentStopLossIdent", colIndex));
+            param.setTakeProfitEdgeOrder(requiredNumber("takeProfitEdgeOrder", colIndex));
 
             params.add(param);
 
@@ -128,27 +198,29 @@ public class ReaderParam {
             colIndex++;
         }
 
-
         return params;
     }
 
-    private boolean parseBoolean(Cell cell, boolean defaultValue) {
-        switch (cell.getType()){
+    private boolean parseBoolean(String label, Cell cell, boolean defaultValue) {
+        if (cell == null) {
+            return defaultValue;
+        }
+        switch (cell.getType()) {
             case EMPTY:
                 return defaultValue;
             case BOOLEAN:
                 return (Boolean) cell.getValue();
             case STRING:
+            case FORMULA:
                 String value = U.clean(cell.getText()).toLowerCase();
-                return value.equals("true") || value.equals("vero");
+                return value.equals("true") || value.equals("vero") || value.equals("1");
             case NUMBER:
                 return cell.getText().equals("1");
-            case FORMULA:
-                return cell.getText().toLowerCase().contains("true");
             case ERROR:
-                throw new NullPointerException("Read Param cell empty");
+                throw new IllegalStateException(
+                        "Cella in errore per il parametro '" + label + "': " + cell.getAddress());
+            default:
+                return defaultValue;
         }
-
-        return defaultValue;
     }
 }
