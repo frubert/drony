@@ -114,82 +114,85 @@ public class ReaderParam {
         while (rowOf("Name").getCellAsString(colIndex).isPresent()
                 && !U.isEmptyOrNull(rowOf("Name").getCellAsString(colIndex).get())) {
 
-            ParamDrony param = new ParamDrony();
+            ParamDrony.SequenceFilter sequenceFilter = new ParamDrony.SequenceFilter(
+                    intValue("N Bars:", colIndex, "2"),
+                    numberValue("Body % Min:", colIndex, "10"),
+                    numberValue("Body % Max:", colIndex, "95"),
+                    numberValue("Mod Min :", colIndex, "10"),
+                    numberValue("Mod Max :", colIndex, "100"),
+                    numberValue("Body abs Min:", colIndex, "0.5"),
+                    numberValue("Body abs Max :", colIndex, "50"),
+                    numberValue("Slope Min:", colIndex, "1"),
+                    numberValue("Slope Max:", colIndex, "20"));
 
-            param.setName(stringValue("Name", colIndex, ""));
-            param.setSelectedInstrument(Instrument.valueOf(stringValue("Selected Instrument:", colIndex, "EURUSD")));
-            param.setSelectedPeriod(Period.valueOf(stringValue("Selected Period:", colIndex, "ONE_HOUR")));
-            param.setOrderSize(numberValue("OrderSize:", colIndex, "0.2"));
-            param.setN(intValue("N Bars:", colIndex, "2"));
+            ParamDrony.EntryConfig entry = new ParamDrony.EntryConfig(
+                    numberValue("Indent:", colIndex, "0"),
+                    numberValue("Indent % shadow:", colIndex, "0"),
+                    numberValue("Slippage:", colIndex, "0"),
+                    intValue("Num CandlesValid;", colIndex, "4"));
 
-            param.setBody_perc_min(numberValue("Body % Min:", colIndex, "10"));
-            param.setBody_perc_max(numberValue("Body % Max:", colIndex, "95"));
-            param.setMod_min(numberValue("Mod Min :", colIndex, "10"));
-            param.setMod_max(numberValue("Mod Max :", colIndex, "100"));
-            param.setBody_abs_min(numberValue("Body abs Min:", colIndex, "0.5"));
-            param.setBody_abs_max(numberValue("Body abs Max :", colIndex, "50"));
+            ParamDrony.PinzaConfig pinza = new ParamDrony.PinzaConfig(
+                    numberValue("Cap Abs:", colIndex, "20"),
+                    numberValue("Cap %:", colIndex, "0"),
+                    numberValue("Cap attn:", colIndex, "90"),
+                    numberValue("Floor abs:", colIndex, "40"),
+                    numberValue("Floor %:", colIndex, "0"),
+                    numberValue("Floor attn:", colIndex, "10"),
+                    booleanValue("Pinza monotona de/crescente", colIndex, true),
+                    intValue("waitNBarPinza", colIndex, "0"),
+                    intValue("Num max barre per ordine", colIndex, "10"));
 
-            param.setIndent(numberValue("Indent:", colIndex, "0"));
-            param.setIndentPercentPennachio(numberValue("Indent % shadow:", colIndex, "0"));
+            ParamDrony.TradingWindow tradingWindow = new ParamDrony.TradingWindow(
+                    rowOf("Start TradingTime:").getCellAsDate(colIndex)
+                            .orElse(LocalDateTime.of(1999, 1, 1, 7, 0)).toLocalTime(),
+                    rowOf("End TradingTime:").getCellAsDate(colIndex)
+                            .orElse(LocalDateTime.of(1999, 1, 1, 17, 0)).toLocalTime(),
+                    booleanValue("FreeWeekEnd", colIndex, false));
 
-            param.setCap_abs(numberValue("Cap Abs:", colIndex, "20"));
-            param.setCap_perc(numberValue("Cap %:", colIndex, "0"));
-            param.setCap_attn(numberValue("Cap attn:", colIndex, "90"));
+            ParamDrony.ShadowFilter shadowFilter = new ParamDrony.ShadowFilter(
+                    intValue("numBodyShadowBars:", colIndex, "1"),
+                    numberValue("minBodyShadow%", colIndex, "20"),
+                    numberValue("minBodyShadow", colIndex, "0"),
+                    numberValue("minFutureBodyShadow%", colIndex, "0"),
+                    numberValue("minFutureBodyShadow", colIndex, "0"));
 
-            param.setFloor_abs(numberValue("Floor abs:", colIndex, "40"));
-            param.setFloor_perc(numberValue("Floor %:", colIndex, "0"));
-            param.setFloor_attn(numberValue("Floor attn:", colIndex, "10"));
+            ParamDrony.MacroPL macroPL = new ParamDrony.MacroPL(
+                    booleanValue("macroPL", colIndex, false),
+                    numberValue("macroPLProfit", colIndex, "30"),
+                    numberValue("macroPLLoss", colIndex, "200"));
 
-            param.setSlope_min(numberValue("Slope Min:", colIndex, "1"));
-            param.setSlope_max(numberValue("Slope Max:", colIndex, "20"));
+            ParamDrony.ColorStory colorStory = new ParamDrony.ColorStory(
+                    intValue("numColorStoryBars", colIndex, "7"),
+                    numberValue("colorStorySameBars", colIndex, "7"));
 
-            param.setSlippage(numberValue("Slippage:", colIndex, "0"));
+            ParamDrony.ClusterConfig cluster = new ParamDrony.ClusterConfig(
+                    rowOf("order cluster").getCellAsString(colIndex).orElse(""),
+                    intValue("order cluster priority", colIndex, "0"),
+                    intValue("Max order by cluster", colIndex, "1"));
 
-            param.setStartTradingTime(rowOf("Start TradingTime:").getCellAsDate(colIndex)
-                    .orElse(LocalDateTime.of(1999, 1, 1, 7, 0)).toLocalTime());
-            param.setEndTradingTime(rowOf("End TradingTime:").getCellAsDate(colIndex)
-                    .orElse(LocalDateTime.of(1999, 1, 1, 17, 0)).toLocalTime());
-
-            param.setNumCandlesValid(intValue("Num CandlesValid;", colIndex, "4"));
-            param.setStrategyType(stringValue("strategyType", colIndex, "FULL"));
-
-            param.setNumBodyShadowBars(intValue("numBodyShadowBars:", colIndex, "1"));
-            param.setMinBodyShadowPercentage(numberValue("minBodyShadow%", colIndex, "20"));
-            param.setMinBodyShadow(numberValue("minBodyShadow", colIndex, "0"));
-            param.setMinFutureBodyShadowPercentage(numberValue("minFutureBodyShadow%", colIndex, "0"));
-            param.setMinFutureBodyShadow(numberValue("minFutureBodyShadow", colIndex, "0"));
-
-            param.setMacroPL(booleanValue("macroPL", colIndex, false));
-            param.setMacroPLProfit(numberValue("macroPLProfit", colIndex, "30"));
-            param.setMacroPLLoss(numberValue("macroPLLoss", colIndex, "200"));
-
-            param.setNumColorStoryBars(intValue("numColorStoryBars", colIndex, "7"));
-            param.setColorStorySameBars(numberValue("colorStorySameBars", colIndex, "7"));
-
-            param.setAttivaMonotona(booleanValue("Pinza monotona de/crescente", colIndex, true));
-            param.setOrderNumMaxBar(intValue("Num max barre per ordine", colIndex, "10"));
-            param.setPreventMultipleOrders(booleanValue("preventMultipleOrders", colIndex, true));
-            param.setWaitNBarPinza(intValue("waitNBarPinza", colIndex, "0"));
-
-            param.setOrderCluster(rowOf("order cluster").getCellAsString(colIndex).orElse(""));
-            param.setOrderClusterPriority(intValue("order cluster priority", colIndex, "0"));
-            param.setMaxOrderByCluster(intValue("Max order by cluster", colIndex, "1"));
-
-            param.setActiveFreeWeekEnd(booleanValue("FreeWeekEnd", colIndex, false));
-
-            param.setPercentDeltaTakeProfitUpdateStopLoss(
-                    numberValue("IF %a TP > SL = OpenPrice + %bTP)", colIndex, "0"));
-            param.setPercentDeltaTakeProfitAddToStartPrice(
+            ParamDrony.BreakEvenConfig breakEven = new ParamDrony.BreakEvenConfig(
+                    numberValue("IF %a TP > SL = OpenPrice + %bTP)", colIndex, "0"),
                     numberValue("%b TP to add on OpenPrice", colIndex, "0"));
 
-            param.setActiveEdgeOrder(booleanValue("activeEdgeOrder", colIndex, false));
-            param.setOrderSizeEdgeOrder(requiredNumber("EdgeOrderSize", colIndex));
-            param.setIdentEdgeOrder(requiredNumber("identEdgeOrder", colIndex));
-            param.setIndentPercentPennachioEdgeOrder(requiredNumber("indentPercentPennachioEdgeOrder", colIndex));
-            param.setIndentPercentModEdgeOrder(requiredNumber("indentPercentModEdgeOrder", colIndex));
-            param.setStopLossEdgeOrder(requiredNumber("stopLossEdgeOrder", colIndex));
-            param.setPercentStopLossIdent(requiredNumber("percentStopLossIdent", colIndex));
-            param.setTakeProfitEdgeOrder(requiredNumber("takeProfitEdgeOrder", colIndex));
+            ParamDrony.EdgeConfig edge = new ParamDrony.EdgeConfig(
+                    booleanValue("activeEdgeOrder", colIndex, false),
+                    requiredNumber("EdgeOrderSize", colIndex),
+                    requiredNumber("identEdgeOrder", colIndex),
+                    requiredNumber("indentPercentPennachioEdgeOrder", colIndex),
+                    requiredNumber("indentPercentModEdgeOrder", colIndex),
+                    requiredNumber("stopLossEdgeOrder", colIndex),
+                    requiredNumber("takeProfitEdgeOrder", colIndex),
+                    requiredNumber("percentStopLossIdent", colIndex));
+
+            ParamDrony param = new ParamDrony(
+                    stringValue("Name", colIndex, ""),
+                    Instrument.valueOf(stringValue("Selected Instrument:", colIndex, "EURUSD")),
+                    Period.valueOf(stringValue("Selected Period:", colIndex, "ONE_HOUR")),
+                    numberValue("OrderSize:", colIndex, "0.2"),
+                    stringValue("strategyType", colIndex, "FULL"),
+                    booleanValue("preventMultipleOrders", colIndex, true),
+                    sequenceFilter, entry, pinza, tradingWindow, shadowFilter,
+                    macroPL, colorStory, cluster, breakEven, edge);
 
             params.add(param);
 
