@@ -35,6 +35,21 @@ java -jar target/drony-4_2-jar-with-dependencies.jar
 Si apre la GUI del tester Dukascopy (backtest sull'intervallo configurato).
 I report finiscono in `report/` (HTML del tester) e `report/xlsx/` (Excel ordini).
 
+### Giornale decisionale
+
+Con `strategy.decisionsFile` valorizzato in `drony.properties`, ogni decisione
+dell'algoritmo finisce in un CSV (una riga per barra × strategia): segnale
+scartato e quale filtro l'ha fermato con i valori misurati, blocchi (orario,
+ordine già attivo, doji, tipo strategia), ordini creati/rifiutati dal cluster,
+fill e chiusure con motivazione. È lo strumento per rispondere a "perché su
+questa barra non è successo niente?".
+
+### Test
+
+`mvn test` — oltre al test di regressione sui parametri Excel,
+`BarFiltersTest` esercita i 7 filtri candela con barre sintetiche, senza
+connessione Dukascopy: documentazione eseguibile delle regole di ingresso.
+
 ## Struttura
 
 ```
