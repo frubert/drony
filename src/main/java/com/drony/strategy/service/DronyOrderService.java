@@ -168,6 +168,8 @@ public class DronyOrderService {
 
     } catch (JFException e) {
       this.console.getErr().println(Utility.customFormat(instrument, "Error %s", e.toString()));
+      this.delegateDrony.getDecisionLogger().log(bar.getTime(), this.paramDrony.getName(),
+          direction.name(), Outcome.RIFIUTATO, "submit fallita: " + e.getMessage());
       return false;
     }
 
