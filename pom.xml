@@ -22,9 +22,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <version.jforex.api>2.13.98
+        <version.jforex.api>2.13.99
         </version.jforex.api> <!-- find the latest available version here:http://www.dukascopy.com/client/jforexlib/publicrepo/com/dukascopy/api/JForex-API/ -->
-        <version.dds2.jclient.jforex>3.6.37
+        <version.dds2.jclient.jforex>3.6.51
         </version.dds2.jclient.jforex> <!-- find the latest available version here: http://www.dukascopy.com/client/jforexlib/publicrepo/com/dukascopy/dds2/DDS2-jClient-JForex/    -->
         <version.fastexcel>0.15.1</version.fastexcel> <!-- https://mvnrepository.com/artifact/org.dhatim/fastexcel -->
         <version.fastexcel-reader>0.15.1
