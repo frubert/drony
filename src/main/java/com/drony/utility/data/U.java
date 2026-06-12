@@ -30,7 +30,7 @@ public final class U {
     public static String CSV_SEPARATOR = ";";
 
     public static Short multiplyMinusOne(Short a) {
-        return (new Integer(a * -1)).shortValue();
+        return (short) (a * -1);
     }
 
     public static Short absShort(Short a) {
