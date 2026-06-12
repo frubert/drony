@@ -1,0 +1,23 @@
+# Configurazione Drony — copiare questo file in drony.properties e compilare.
+# drony.properties è in .gitignore: le credenziali NON vanno mai committate.
+
+# --- Connessione Dukascopy (account DEMO: registrarsi su https://www.dukascopy.com/europe/italiano/forex/demo-fx-account/) ---
+dukascopy.jnlpUrl=http://platform.dukascopy.com/demo/jforex.jnlp
+dukascopy.username=INSERIRE_USERNAME_DEMO
+dukascopy.password=INSERIRE_PASSWORD
+
+# --- Strategia ---
+# Strumento (nome enum JForex: EURUSD, BRENTCMDUSD, ...)
+strategy.instrument=BRENTCMDUSD
+# File Excel dei parametri (path relativo alla cartella di lancio o assoluto)
+strategy.paramFile=param/DronyParamV04.xlsx
+# Cartella dove scrivere i report Excel della strategia
+strategy.resultDir=report/xlsx
+# Prefisso del report HTML del tester
+strategy.reportFileName=report/report
+strategy.verbose=true
+
+# --- Intervallo backtest (UTC, formato yyyy/MM/dd HH:mm:ss) ---
+backtest.from=2020/06/24 00:00:00
+backtest.to=2021/03/30 23:59:00
+strategy.decisionsFile=report/decisions.csv

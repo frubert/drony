@@ -3,6 +3,7 @@ drony.properties
 
 # Output generati dalla strategia
 report/
+runs/
 logs/
 # File lock Excel
 ~$*

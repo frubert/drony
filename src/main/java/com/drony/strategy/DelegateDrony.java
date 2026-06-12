@@ -2,6 +2,7 @@ package com.drony.strategy;
 
 import com.drony.strategy.data.DronyData;
 import com.drony.strategy.data.ParamDrony;
+import com.drony.strategy.data.StrategyStats;
 import com.drony.strategy.edge.EdgeOrderService;
 import com.drony.strategy.service.ClusterManager;
 import com.drony.strategy.utility.DecisionLogger;
@@ -182,9 +183,25 @@ public class DelegateDrony {
       } catch (IOException e) {
         log.error("Errore scrittura report {}", fileResult, e);
       }
+
+      writeResultsCsv();
     }
 
     this.decisionLogger.close();
+  }
+
+  /** Statistiche aggregate per strategia, una riga per colonna Excel: l'output per script e ottimizzatore. */
+  private void writeResultsCsv() {
+    File resultsFile = new File(fileResult.getAbsoluteFile().getParentFile(), "results.csv");
+    try (PrintWriter out = new PrintWriter(new FileWriter(resultsFile, false))) {
+      out.println(StrategyStats.csvHeader());
+      for (DronyStrategy drony : dronies) {
+        out.println(drony.getStats().toCsvRow());
+      }
+      console.getOut().println("Results in " + resultsFile.getAbsolutePath());
+    } catch (IOException e) {
+      log.error("Errore scrittura results.csv {}", resultsFile, e);
+    }
   }
 
   public void onTick(Instrument instrument, ITick tick) throws JFException {

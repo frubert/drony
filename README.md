@@ -50,6 +50,34 @@ questa barra non è successo niente?".
 `BarFiltersTest` esercita i 7 filtri candela con barre sintetiche, senza
 connessione Dukascopy: documentazione eseguibile delle regole di ingresso.
 
+## Ottimizzazione parametri
+
+Pipeline per cercare i parametri in batch, senza GUI:
+
+```bash
+# 1. backtest singolo headless
+java -cp target/drony-4_2-jar-with-dependencies.jar com.drony.tester.HeadlessRunner \
+  --param param/DronyParamV04.xlsx --out runs/test01 \
+  --from "2020/07/01 00:00:00" --to "2020/12/31 23:59:00" --method CANDLE:ONE_HOUR
+
+# 2. genera combinazioni da range (una per colonna Excel = un solo passaggio dati)
+java -cp target/drony-4_2-jar-with-dependencies.jar com.drony.tools.BatchGenerator \
+  --template param/DronyParamV04.xlsx --ranges ranges.txt --out runs/batch01
+
+# 3. esegui il batch in parallelo e aggrega la classifica
+tools/run_batch.sh runs/batch01 "2020/07/01 00:00:00" "2020/12/31 23:59:00" 4 CANDLE:ONE_HOUR
+```
+
+Ogni run produce `results.csv` (trades, win rate, plPips, profit factor, max
+drawdown per strategia) e `decisions.csv` per la diagnosi. `--method` regola
+velocità/precisione: `CANDLE:ONE_HOUR` per screening (~10-50× più veloce),
+`ALL_TICKS` per la validazione finale.
+
+Il ciclo guidato dall'AI (genera → esegui → diagnostica dal giornale
+decisionale → restringi, con validazione out-of-sample) è la skill
+**`/optimize`** di Claude Code (`.claude/skills/optimize/`). Per la ricerca
+numerica pura c'è `tools/optuna_search.py` (richiede `pip install optuna`).
+
 ## Struttura
 
 ```

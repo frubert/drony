@@ -58,7 +58,7 @@ public class ReaderParam {
      * dei caratteri non alfanumerici viene rimosso. Rende il match insensibile a
      * spazi, maiuscole e punteggiatura ("End   TradingTime:" == "endtradingtime").
      */
-    private static String normalize(String label) {
+    public static String normalize(String label) {
         return label.toLowerCase()
                 .replace("%", "perc")
                 .replaceAll("[^a-z0-9]", "");

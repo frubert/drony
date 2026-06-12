@@ -42,6 +42,7 @@ public class DronyStrategy implements StrategyInterface {
   private final Map<String, DronyOrder> orders = new HashMap<>();
   private final List<DronyLogBar> dronyLogBars = new ArrayList<>();
   private final ActiveOrderRegistry orderRegistry = new ActiveOrderRegistry();
+  private final StrategyStats stats;
 
 
   private static final String STRATEGY = "DRONY_42";
@@ -64,6 +65,12 @@ public class DronyStrategy implements StrategyInterface {
     this.identifier =
         U.cleanNameForDCOrder(RandomStringUtils.randomAlphabetic(5) + "_" + paramDrony.getName())
             + "_" + index + "_" + STRATEGY + "_";
+    this.stats = new StrategyStats(paramDrony.getName(),
+        paramDrony.getSelectedInstrument().name(), paramDrony.getSelectedPeriod().name());
+  }
+
+  public StrategyStats getStats() {
+    return stats;
   }
 
   @Override
@@ -119,6 +126,7 @@ public class DronyStrategy implements StrategyInterface {
       } else if (message.getReasons().contains(IMessage.Reason.ORDER_CLOSED_BY_TP)) {
         dronyOrder.setMotivationToClose(" BY TAKE PROFIT");
       }
+      this.stats.onOrderClosed(order.getProfitLossInPips(), order.getProfitLossInUSD());
       this.decisions.log(message.getCreationTime(), paramDrony.getName(),
           dronyOrder.getDirection().name(), Outcome.CHIUSURA,
           order.getLabel() + " P&L " + order.getProfitLossInPips() + " pips, motivo:"
