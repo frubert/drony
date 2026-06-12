@@ -76,6 +76,13 @@ dimensiona sull'escursione della sequenza operativa.
 - **Barre doji** (open == close): `BarUtility.getBarColor` ritorna
   `DirectionEnum.DOJI`; in `onBar` una doji non innesca né ramo BUY né SELL,
   come quando ritornava `null`.
+- **Candele flat del weekend** (scoperta in ottimizzazione EUR/USD, 12/06/2026):
+  con `candleFilter = NO_FILTER` (default storico) lo storico include le candele
+  piatte di sabato/domenica, che risultano DOJI e fanno fallire il test di
+  direzione per ogni segnale del lunedì (~24% delle barre daily EUR/USD
+  scartate per questo). Il parametro Excel opzionale `candleFilter`
+  (riga in colonna A, valori `NO_FILTER`/`WEEKENDS`/`ALL_FLATS`) permette di
+  escluderle; se la riga manca vale `NO_FILTER`, identico al comportamento 4.2.
 
 ---
 

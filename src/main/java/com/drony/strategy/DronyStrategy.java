@@ -255,7 +255,7 @@ public class DronyStrategy implements StrategyInterface {
           || paramDrony.getStrategyType().equals(StrategyTypeEnum.SHORT)) {
 
         final List<IBar> sellBars = history
-            .getBars(instrument, period, OfferSide.BID, Filter.NO_FILTER,
+            .getBars(instrument, period, OfferSide.BID, paramDrony.getCandleFilter(),
                 Math.max(paramDrony.getN(), 2), currentBarTime, 0);
         roboStrategyBar(instrument, period, sellBars, DirectionEnum.SELL);
       } else {
@@ -269,7 +269,7 @@ public class DronyStrategy implements StrategyInterface {
           || paramDrony.getStrategyType().equals(StrategyTypeEnum.LONG)) {
 
         final List<IBar> buyBars = history
-            .getBars(instrument, period, OfferSide.ASK, Filter.NO_FILTER,
+            .getBars(instrument, period, OfferSide.ASK, paramDrony.getCandleFilter(),
                 Math.max(paramDrony.getN(), 2), currentBarTime, 0);
         roboStrategyBar(instrument, period, buyBars, DirectionEnum.BUY);
       } else {

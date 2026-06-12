@@ -57,6 +57,7 @@ final class TestSupport {
             ParamDrony.ColorStory colorStory) {
         return new ParamDrony(
                 "TEST", INSTRUMENT, PERIOD, 0.1, "FULL", true,
+                com.dukascopy.api.Filter.NO_FILTER,
                 sequence,
                 new ParamDrony.EntryConfig(0, 0, 0, 4),
                 new ParamDrony.PinzaConfig(20, 0, 90, 40, 0, 10, true, 0, 10),

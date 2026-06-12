@@ -2,6 +2,7 @@ package com.drony.strategy.data;
 
 import com.drony.strategy.edge.data.EdgeOrderParam;
 import com.drony.strategy.test.data.BarTestResult;
+import com.dukascopy.api.Filter;
 import com.dukascopy.api.Instrument;
 import com.dukascopy.api.Period;
 
@@ -95,6 +96,10 @@ public class ParamDrony implements EdgeOrderParam {
     private final double orderSize;
     private final String strategyType;
     private final boolean preventMultipleOrders;
+    /** Filtro candele per il caricamento storico: WEEKENDS/ALL_FLATS escludono
+     *  le barre piatte del weekend che su forex risultano doji e uccidono i
+     *  segnali del lunedì. Default NO_FILTER = comportamento storico. */
+    private final Filter candleFilter;
 
     private final SequenceFilter sequenceFilter;
     private final EntryConfig entry;
@@ -108,7 +113,7 @@ public class ParamDrony implements EdgeOrderParam {
     private final EdgeConfig edge;
 
     public ParamDrony(String name, Instrument selectedInstrument, Period selectedPeriod,
-        double orderSize, String strategyType, boolean preventMultipleOrders,
+        double orderSize, String strategyType, boolean preventMultipleOrders, Filter candleFilter,
         SequenceFilter sequenceFilter, EntryConfig entry, PinzaConfig pinza,
         TradingWindow tradingWindow, ShadowFilter shadowFilter, MacroPL macroPL,
         ColorStory colorStory, ClusterConfig cluster, BreakEvenConfig breakEven, EdgeConfig edge) {
@@ -119,6 +124,7 @@ public class ParamDrony implements EdgeOrderParam {
         this.orderSize = orderSize;
         this.strategyType = strategyType;
         this.preventMultipleOrders = preventMultipleOrders;
+        this.candleFilter = candleFilter;
         this.sequenceFilter = sequenceFilter;
         this.entry = entry;
         this.pinza = pinza;
@@ -163,6 +169,10 @@ public class ParamDrony implements EdgeOrderParam {
 
     public boolean isPreventMultipleOrders() {
         return preventMultipleOrders;
+    }
+
+    public Filter getCandleFilter() {
+        return candleFilter;
     }
 
     /* ----- filtri sequenza ----- */
@@ -406,6 +416,7 @@ public class ParamDrony implements EdgeOrderParam {
             ", orderSize=" + orderSize +
             ", strategyType='" + strategyType + '\'' +
             ", preventMultipleOrders=" + preventMultipleOrders +
+            ", candleFilter=" + candleFilter +
             ", " + sequenceFilter +
             ", " + entry +
             ", " + pinza +

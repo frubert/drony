@@ -2,6 +2,7 @@ package com.drony.strategy.utility;
 
 import com.drony.strategy.data.ParamDrony;
 import com.drony.utility.data.U;
+import com.dukascopy.api.Filter;
 import com.dukascopy.api.IConsole;
 import com.dukascopy.api.Instrument;
 import com.dukascopy.api.Period;
@@ -84,6 +85,15 @@ public class ReaderParam {
 
     private String stringValue(String label, int colIndex, String defaultValue) {
         return U.clean(rowOf(label).getCellAsString(colIndex).orElse(defaultValue));
+    }
+
+    /** Come stringValue, ma l'etichetta può mancare del tutto nel foglio (parametri introdotti dopo). */
+    private String optionalStringValue(String label, int colIndex, String defaultValue) {
+        Integer index = labelIndex.get(normalize(label));
+        if (index == null) {
+            return defaultValue;
+        }
+        return U.clean(rows.get(index).getCellAsString(colIndex).orElse(defaultValue));
     }
 
     private double numberValue(String label, int colIndex, String defaultValue) {
@@ -191,6 +201,7 @@ public class ReaderParam {
                     numberValue("OrderSize:", colIndex, "0.2"),
                     stringValue("strategyType", colIndex, "FULL"),
                     booleanValue("preventMultipleOrders", colIndex, true),
+                    Filter.valueOf(optionalStringValue("candleFilter", colIndex, "NO_FILTER")),
                     sequenceFilter, entry, pinza, tradingWindow, shadowFilter,
                     macroPL, colorStory, cluster, breakEven, edge);
 

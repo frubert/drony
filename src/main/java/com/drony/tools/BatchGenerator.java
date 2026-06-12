@@ -53,6 +53,9 @@ public class BatchGenerator {
     private static final int BASE_COL = 2;
     private static final int FIRST_OUT_COL = 2;
 
+    /** etichette dei ranges assenti nel template: normalizzata -> testo originale */
+    private static final Map<String, String> newLabels = new LinkedHashMap<>();
+
     public static void main(String[] args) throws Exception {
         Map<String, String> opts = parseArgs(args);
 
@@ -123,8 +126,9 @@ public class BatchGenerator {
             String label = line.substring(0, eq).trim();
             String normalized = ReaderParam.normalize(label);
             if (!labelIndex.containsKey(normalized)) {
-                throw new IllegalArgumentException(
-                        "Etichetta '" + label + "' non trovata nel template");
+                /* parametro non presente nel template (introdotto dopo): verrà
+                   aggiunto come riga nuova in fondo al foglio generato */
+                newLabels.putIfAbsent(normalized, label);
             }
             List<String> values = new ArrayList<>();
             for (String v : line.substring(eq + 1).split(",")) {
@@ -254,6 +258,20 @@ public class BatchGenerator {
                     }
                 }
             }
+
+            /* righe nuove per i parametri assenti nel template */
+            int extraRow = rows.size();
+            for (Map.Entry<String, String> extra : newLabels.entrySet()) {
+                ws.value(extraRow, LABEL_COL, extra.getValue());
+                for (int c = 0; c < combos.size(); c++) {
+                    String value = combos.get(c).get(extra.getKey());
+                    if (value != null) {
+                        writeOverride(ws, extraRow, FIRST_OUT_COL + c, extra.getKey(), value);
+                    }
+                }
+                extraRow++;
+            }
+
             ws.finish();
         }
     }

@@ -44,7 +44,7 @@ public class BarTestInit {
         this(bar, paramRoboBar, instrument, direction);
         this.slopeBar = slopeBar;
         this.maxBars = Math.max(this.param.getNumColorStoryBars(), this.param.getNumBodyShadowBars());
-        this.backwardBars = history.getBars(instrument, period, offerSide, Filter.NO_FILTER, maxBars, bar.getTime(), 0);
+        this.backwardBars = history.getBars(instrument, period, offerSide, paramRoboBar.getCandleFilter(), maxBars, bar.getTime(), 0);
     }
 
     public IBar getBar() {
