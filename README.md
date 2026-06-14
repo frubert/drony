@@ -84,6 +84,26 @@ l'out-of-sample (ritaratura periodica simulata). Esiti dell'ottimizzazione
 EUR/USD e specifica del filtro di regime ancora da implementare in
 `docs/ottimizzazione-eurusd-2026-06.md` e `docs/SVILUPPO-filtro-regime.md`.
 
+### Backtest offline (senza account)
+
+`com.drony.offline.OfflineBacktest` esegue un backtest a barre **senza
+connessione né account Dukascopy**, leggendo i dati da CSV. Riusa al 100% i
+filtri di ingresso reali, con un motore ordini semplificato per l'uscita.
+
+```bash
+tools/fetch_data.sh eurusd 2019-01-01 2025-12-31 d1 data   # scarica CSV (feed pubblico, no account)
+java -cp target/drony-4_2-jar-with-dependencies.jar com.drony.offline.OfflineBacktest \
+  --param runs/eurusd_side/param_001.xlsx --csv data/eurusd-d1-*.csv --out runs/offline01
+```
+
+Serve come **pre-screening illimitato e istantaneo** (quante combinazioni
+aprono trade, in che regime, con che segno) per scartare le combinazioni morte
+senza consumare l'account demo. NON è fedele come il tester JForex: non simula
+pinza dinamica, break-even, edge order, cluster, né i fill intrabar coi tick —
+quindi i pips divergono e i candidati promettenti vanno sempre riconfermati con
+`HeadlessRunner --method ALL_TICKS`. Affidabili offline sono il conteggio dei
+trade e il segno del risultato.
+
 > Nota account demo Dukascopy: i backtest concorrenti (jobs > 1) o troppi login
 > ravvicinati possono bloccare l'account (errore 823). Usare jobs=1 e, se
 > bloccato, ri-autenticarsi dalla piattaforma JForex e attendere.

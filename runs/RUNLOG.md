@@ -51,3 +51,19 @@ DEMO2KnzVY. Serve registrare un nuovo account demo fresco su
 https://www.dukascopy.com/europe/italiano/forex/demo-fx-account/ e aggiornare
 dukascopy.username/password in drony.properties. Tooling punto 2 e walk-forward
 pronto, riparte invariato appena le credenziali sono valide.
+
+### Opzione (b) — backtest offline senza account
+Scelta: eliminare la dipendenza dall'account demo (scaduto). Nuovo motore
+`com.drony.offline.OfflineBacktest`: legge barre da CSV, riusa i 7 filtri reali,
+motore ordini semplificato (no pinza/break-even/edge/cluster/tick). Pre-screening
+illimitato; i candidati si riconfermano col tester JForex ALL_TICKS.
+Dati via `tools/fetch_data.sh` (feed pubblico Dukascopy, nessun account).
+
+Smoke test su CSV sintetico (data/EURUSD_synth_daily.csv, 1304 barre, dati FINTI):
+pipeline OK — 9 combo, strategyType discrimina (FULL 42 / LONG 30 / SHORT 14
+trade), P&L e drawdown calcolati. Numeri privi di significato (dati sintetici),
+serviva solo validare il funzionamento end-to-end.
+
+NB: lo scaricamento dati reali con `npx dukascopy-node` va autorizzato dall'utente
+(il classifier blocca l'esecuzione di pacchetti npm esterni). In alternativa,
+export ufficiale: https://www.dukascopy.com/swiss/english/marketwatch/historical/
