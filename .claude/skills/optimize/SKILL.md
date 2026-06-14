@@ -82,6 +82,21 @@ Pattern tipici e risposta:
 - molti FILL ma CHIUSURA "BY BAR NUMBER EXCESSIVE" → orderNumMaxBar troppo basso o TP irraggiungibile
 - RIFIUTATO dal cluster → le combo si bloccano a vicenda: usare cluster vuoti nei batch
 
+### 3b. Walk-forward (validazione di robustezza nel tempo)
+
+Quando una configurazione sembra buona su un periodo, NON fidarsi: usare
+`tools/walk_forward.sh` per simulare la ritaratura periodica reale. Ottimizza su
+una finestra di training, applica solo il migliore sulla finestra di test
+successiva (mai vista), concatena i test. Se il totale out-of-sample è positivo
+e stabile la strategia regge; se no, era overfitting/dipendenza dal regime.
+
+```bash
+tools/walk_forward.sh runs/wf runs/ranges_eurusd_wf.txt CANDLE:ONE_HOUR tools/wf_windows_eurusd.txt
+```
+
+`strategyType` (FULL/LONG/SHORT) è un parametro: includerlo nei range del
+walk-forward permette alla ritaratura di scegliere anche il lato per finestra.
+
 ### 4. Itera o concludi
 
 - Restringere i range intorno ai vincitori, o spostare la ricerca sui parametri

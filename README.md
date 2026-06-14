@@ -78,6 +78,16 @@ decisionale → restringi, con validazione out-of-sample) è la skill
 **`/optimize`** di Claude Code (`.claude/skills/optimize/`). Per la ricerca
 numerica pura c'è `tools/optuna_search.py` (richiede `pip install optuna`).
 
+Per la robustezza nel tempo, `tools/walk_forward.sh` ottimizza su finestre di
+training e applica i vincitori su finestre di test mai viste, concatenando
+l'out-of-sample (ritaratura periodica simulata). Esiti dell'ottimizzazione
+EUR/USD e specifica del filtro di regime ancora da implementare in
+`docs/ottimizzazione-eurusd-2026-06.md` e `docs/SVILUPPO-filtro-regime.md`.
+
+> Nota account demo Dukascopy: i backtest concorrenti (jobs > 1) o troppi login
+> ravvicinati possono bloccare l'account (errore 823). Usare jobs=1 e, se
+> bloccato, ri-autenticarsi dalla piattaforma JForex e attendere.
+
 ## Struttura
 
 ```
