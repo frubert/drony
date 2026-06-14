@@ -67,3 +67,12 @@ serviva solo validare il funzionamento end-to-end.
 NB: lo scaricamento dati reali con `npx dukascopy-node` va autorizzato dall'utente
 (il classifier blocca l'esecuzione di pacchetti npm esterni). In alternativa,
 export ufficiale: https://www.dukascopy.com/swiss/english/marketwatch/historical/
+
+### Ri-verifica account (14 giu, su richiesta: "non dovrebbe avere scadenza")
+1 run di test (2024, CANDLE). Esito invariato: server Dukascopy risponde
+`statuscode=[823] statusmessage=[Account is expired]`. username=DEMO2KnzVY,
+endpoint=platform.dukascopy.com/demo (DEMO). Il messaggio "Account is expired"
+è del server, non della libreria. Probabili cause del disallineamento: (a)
+credenziali nel file sono di un vecchio demo, non del nuovo account; (b)
+l'account valido è di tipo diverso (LIVE / altro) e l'endpoint demo lo rifiuta.
+Da chiarire con chi ha fornito l'account. Nessun ulteriore tentativo per ora.
